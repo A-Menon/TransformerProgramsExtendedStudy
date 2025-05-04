@@ -20,10 +20,10 @@ TAU_SCHED=geomspace
 TASKS=(double_hist hist reverse sort most_freq dyck1 dyck2)
 
 for DATASET in "${TASKS[@]}"; do
-  # ───── model sizes from Table 1 (k = MAX = VOCAB for synthetic sets) ─────
+  # ───── model sizes from Table 1 (k = MAX = VOCAB for synthetic sets) ─────
   case "$DATASET" in
       hist)         VOCAB=8  MAX=8  L=1 H=4 M=2 ;;
-      double_hist)  VOCAB=8  MAX=8  L=3 H=4 M=2 ;;   # 2 cat + 2 num heads
+      double_hist)  VOCAB=8  MAX=8  L=3 H=4 M=2 ;;   # 2 cat + 2 num heads
       reverse)      VOCAB=8  MAX=8  L=3 H=8 M=2 ;;
       sort)         VOCAB=8  MAX=8  L=3 H=8 M=4 ;;
       most_freq)    VOCAB=8  MAX=8  L=4 H=8 M=4 ;;
@@ -32,7 +32,7 @@ for DATASET in "${TASKS[@]}"; do
   esac
   # ──────────────────────────────────────────────────────────────────────────
 
-  # ───── defaults (cat = num split) ─────
+  # ───── defaults (cat = num split) ─────
   N_HEADS_CAT=$((H/2)); N_HEADS_NUM=$((H/2))
   N_CAT_MLPS=$((M/2));  N_NUM_MLPS=$((M/2))
   ATT_TYPE="both"
@@ -52,7 +52,7 @@ for DATASET in "${TASKS[@]}"; do
     double_hist)
       ATT_TYPE="both"
       COUNT_ONLY=""                 # we need the *values*, not just counts
-      N_HEADS_CAT=2;  N_HEADS_NUM=2 # 2 + 2 as in Appendix B
+      N_HEADS_CAT=2;  N_HEADS_NUM=2 # 2 + 2 as in Appendix B
       N_CAT_MLPS=1;   N_NUM_MLPS=1  # mixed stack
       MLP_TYPE="--mlp_type mix"     # first cat, second num
       ;;
