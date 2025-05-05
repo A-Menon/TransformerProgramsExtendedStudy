@@ -1022,7 +1022,6 @@ class TransformerProgramModel(nn.Module):
             n_heads_cat = n_heads
         if n_heads_num is None:
             n_heads_num = n_heads
-
         self.n_heads_cat, self.n_heads_num = n_heads_cat, n_heads_num
         extra_cat = 0
         extra_num = 0
