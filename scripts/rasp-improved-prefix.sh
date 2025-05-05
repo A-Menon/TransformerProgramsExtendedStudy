@@ -81,5 +81,5 @@ for DATASET in "${TASKS[@]}"; do
       --seed "$SEED" --unique 1 \
       --use_prefix_counts \
       --save --save_code \
-      --output_dir "output-improved/rasp-improved-all/${DATASET}/k${VOCAB}_len${MAX}_L${L}_H${H}_M${M}/s${SEED}"
+      --output_dir "output-improved/rasp-improved-prefix/${DATASET}/k${VOCAB}_len${MAX}_L${L}_H${H}_M${M}/s${SEED}"
 done
