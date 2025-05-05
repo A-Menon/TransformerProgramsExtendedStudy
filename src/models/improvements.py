@@ -64,7 +64,7 @@ class ChunkAggregator(nn.Module):
         vocab = num_embed_f.get_W().size(0)
         one_hot = F.one_hot(blocks.long(), num_classes=vocab).float()  
         hist = one_hot.sum(2).sum(3)
-        num_hist = hist.unsqueeze(2).repeat(1, 1, 1, 1).view(B, n_blocks, vocab)
+        num_hist = hist.view(B, n_blocks, vocab)
 
         new_tokens = torch.cat([cat_ids, tokens.reshape(B, -1)], 1)
 
@@ -127,6 +127,8 @@ class ContrastiveTokenRepresentations(nn.Module):
         self.n_buckets = n_buckets
 
     def forward(self, onehot_tokens):
+        if onehot_tokens.size(-1) != self.prototypes.size(1):
+            raise ValueError(f"Token one-hot shape {onehot_tokens.shape} doesn't match prototype shape {self.prototypes.shape}")
         sims = torch.matmul(onehot_tokens, self.prototypes.t())
         sims = sims / self.temperature
         hard = F.gumbel_softmax(sims, hard=True, dim=-1)
@@ -148,8 +150,17 @@ class PositionalNgramMemoryNetwork(nn.Module):
         xpad = torch.cat([pad, x], 1)
         ngrams = []
         for n in range(self.max_ngram):
-            ngrams.append(xpad[:, n:n+L])
-        return torch.stack(ngrams, 2)
+            end_idx = min(n+L, xpad.size(1))
+            ngrams.append(xpad[:, n:end_idx])
+        max_len = max(ng.size(1) for ng in ngrams)
+        padded_ngrams = []
+        for ng in ngrams:
+            if ng.size(1) < max_len:
+                padding = torch.zeros(B, max_len - ng.size(1), d, device=x.device)
+                padded_ngrams.append(torch.cat([ng, padding], dim=1))
+            else:
+                padded_ngrams.append(ng)
+        return torch.stack(padded_ngrams, 2)
 
     def forward(self, x):
         ngrams = self.extract_ngrams(x)

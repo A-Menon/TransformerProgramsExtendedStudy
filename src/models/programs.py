@@ -680,10 +680,11 @@ class NumAttention(nn.Module):
         attn_scores_pre = torch.einsum("biph,biqh->biqp", k, q)
         if mask is not None:
             attn_scores_masked = attn_scores_pre.masked_fill(
-                (~mask).unsqueeze(1), 0
+                (~mask).unsqueeze(1), -1e30
             )
         else:
-            attn_scores_masked = torch.tril(attn_scores_pre)
+            causal_mask = torch.ones_like(attn_scores_pre, dtype=torch.bool).triu(diagonal=1)
+            attn_scores_masked = attn_scores_pre.masked_fill(causal_mask, -1e30)
         attn_matrix = self.hook_attn(self.hook_attn_pre(attn_scores_masked))
         z = self.hook_z(torch.einsum("biph,biqp->biqh", v, attn_matrix))
         z_flat = einops.rearrange(z, "b i q h -> b q (i h)")
