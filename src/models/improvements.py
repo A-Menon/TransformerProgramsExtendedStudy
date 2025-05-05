@@ -66,7 +66,7 @@ class ChunkAggregator(nn.Module):
         hist = one_hot.sum(2).sum(3)
         num_hist = hist.unsqueeze(2).repeat(1, 1, H, 1).view(B, -1, vocab)
 
-        new_tokens = torch.cat([cat_ids, tokens.view(B, -1)], 1)
+        new_tokens = torch.cat([cat_ids, tokens.reshape(B, -1)], 1)
 
         return new_tokens, cat_ids, num_hist
     
