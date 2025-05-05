@@ -1127,8 +1127,12 @@ class TransformerProgramModel(nn.Module):
 
         contrast_cat = None
         if self.use_contrast:
+            if self.use_chunks:
+                tokens_for_contrast = torch.cat([chunk_cat_ids, x_hashed], dim=1)
+            else:
+                tokens_for_contrast = x_hashed
             one_hot = F.one_hot(
-                x_hashed,
+                tokens_for_contrast,
                 num_classes=self.contrast_layer.prototypes.size(1)
             )
             contrast_cat = self.contrast_layer(one_hot.float())
