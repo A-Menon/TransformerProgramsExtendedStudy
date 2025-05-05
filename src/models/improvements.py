@@ -70,7 +70,7 @@ class ChunkAggregator(nn.Module):
     
         new_tokens = torch.cat([cat_ids, tokens.reshape(B, -1)], 1)
 
-        return new_tokens, cat_ids, num_hist
+        return new_tokens, cat_ids, hist
     
 # Sparse mixture of experts for counting-related tasks
 # MoE layer learns to pick one of several purpose‑built counting experts per token
