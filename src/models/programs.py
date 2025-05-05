@@ -523,7 +523,6 @@ class CatAttention(nn.Module):
         super().__init__()
         d_out = d_head * n_heads
         self.model = model
-        # n_heads, d_head, d_model
         self.W_K = ConstrainedRead(
             d_in,
             d_head,
@@ -591,8 +590,19 @@ class CatAttention(nn.Module):
         v = self.hook_v(torch.einsum("ihd,bpd->biph", self.W_V(), x))
         attn_scores_pre = torch.einsum("biph,biqh->biqp", k, q)
 
-        # Default to BOS
-        scores = attn_scores_pre.masked_fill((~mask).unsqueeze(1), 0).sum(-1)
+        if attn_scores_pre.size(-1) != mask.size(-1):
+            expanded_mask = torch.ones(
+                attn_scores_pre.size(0),
+                attn_scores_pre.size(2),
+                attn_scores_pre.size(3), 
+                device=mask.device,
+                dtype=torch.bool
+            )
+            min_size = min(expanded_mask.size(-1), mask.size(-1))
+            expanded_mask[:, :min_size, :min_size] = mask[:, :min_size, :min_size]
+            scores = attn_scores_pre.masked_fill((~expanded_mask).unsqueeze(1), 0).sum(-1)
+        else:
+            scores = attn_scores_pre.masked_fill((~mask).unsqueeze(1), 0).sum(-1)
         max_score = scores / (scores + 1e-10)
         attn_scores_pre[:, :, :, 0] += F.relu(1.0 - max_score)
 
