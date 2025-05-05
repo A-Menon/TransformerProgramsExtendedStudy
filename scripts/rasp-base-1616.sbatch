@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=transf-prog-rasp
-#SBATCH --output=logs/llm_%j.out
-#SBATCH --error=logs/llm_%j.err
+#SBATCH --output=logs-base-1616/rasp-base-1616.out
+#SBATCH --error=logs-base-1616/rasp-base-1616.err
 #SBATCH --time=04:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
@@ -19,4 +19,4 @@ export PYTHONPATH=$(pwd)/src:$PYTHONPATH
 # 3. Run the RASP task loop
 echo "CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES"
 python -c "import torch; print('Torch sees CUDA:', torch.cuda.is_available())"
-bash scripts/rasp.sh
+bash scripts/rasp-base-1616.sh

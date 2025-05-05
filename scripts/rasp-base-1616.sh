@@ -17,18 +17,16 @@ TAU_END=0.1       # cools far enough for discrete convergence
 TAU_SCHED=geomspace
 # ───────────────────────────────────────────────────────────────────
 
-TASKS=(double_hist hist reverse sort most_freq dyck1 dyck2)
+TASKS=(double_hist hist reverse sort most_freq)
 
 for DATASET in "${TASKS[@]}"; do
   # ───── model sizes from Table 1 (k = MAX = VOCAB for synthetic sets) ─────
   case "$DATASET" in
-      hist)         VOCAB=8  MAX=8  L=1 H=4 M=2 ;;
-      double_hist)  VOCAB=8  MAX=8  L=3 H=4 M=2 ;;   # 2 cat + 2 num heads
-      reverse)      VOCAB=8  MAX=8  L=3 H=8 M=2 ;;
-      sort)         VOCAB=8  MAX=8  L=3 H=8 M=4 ;;
-      most_freq)    VOCAB=8  MAX=8  L=4 H=8 M=4 ;;
-      dyck1)        VOCAB=16 MAX=16 L=3 H=8 M=2 ;;
-      dyck2)        VOCAB=16 MAX=16 L=3 H=4 M=4 ;;
+      hist)         VOCAB=16  MAX=16  L=1 H=4 M=2 ;;
+      double_hist)  VOCAB=16  MAX=16  L=3 H=4 M=2 ;;   # 2 cat + 2 num heads
+      reverse)      VOCAB=16  MAX=16  L=3 H=8 M=2 ;;
+      sort)         VOCAB=16  MAX=16  L=3 H=8 M=4 ;;
+      most_freq)    VOCAB=16  MAX=16  L=4 H=8 M=4 ;;
   esac
   # ──────────────────────────────────────────────────────────────────────────
 
@@ -80,5 +78,5 @@ for DATASET in "${TASKS[@]}"; do
       --selector_width 0 \
       --seed "$SEED" --unique 1 \
       --save --save_code \
-      --output_dir "output-1/rasp/${DATASET}/k${VOCAB}_len${MAX}_L${L}_H${H}_M${M}/s${SEED}"
+      --output_dir "output-base-1616/rasp/${DATASET}/k${VOCAB}_len${MAX}_L${L}_H${H}_M${M}/s${SEED}"
 done
