@@ -1025,9 +1025,6 @@ class TransformerProgramModel(nn.Module):
         self.n_heads_cat, self.n_heads_num = n_heads_cat, n_heads_num
         extra_cat = 0
         extra_num = 0
-        if self.use_chunks:
-            extra_cat += d_var
-            extra_num += d_vocab
         if self.use_contrast:
             self.contrast_layer = ContrastiveTokenRepresentations(d_vocab)
             extra_cat += self.contrast_layer.n_buckets
