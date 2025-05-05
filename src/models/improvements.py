@@ -61,7 +61,7 @@ class ChunkAggregator(nn.Module):
 
         cat_ids = blocks[:, :, 0, :].contiguous().view(B, -1).long()
         vocab = num_embed_f.get_W().size(0)
-        one_hot = F.one_hot(blocks.long().view(B, -1), num_classes=vocab).float()
+        one_hot = F.one_hot(blocks.long().reshape(B, -1), num_classes=vocab).float()
         one_hot = one_hot.view(B, n_blocks, self.block, H, vocab)
 
         hist = one_hot.sum(dim=2).sum(dim=2)
