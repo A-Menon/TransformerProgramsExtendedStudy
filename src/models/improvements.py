@@ -151,7 +151,7 @@ class PositionalNgramMemoryNetwork(nn.Module):
     def forward(self, x):
         ngrams = self.extract_ngrams(x)
         mem = self.memory.unsqueeze(0).unsqueeze(0)
-        sims = (ngrams.unsqueeze(3) * mem).sum(-1)
+        sims = (ngrams.unsqueeze(2) * mem).sum(-1)
         scores = sims + self.pos_bias.view(1,1,*self.pos_bias.shape)
         best = scores.argmax(-1)
         enhanced = torch.gather(
