@@ -642,21 +642,13 @@ class CatAttention(nn.Module):
         attn_scores_pre = torch.einsum("biph,biqh->biqp", k, q)
         
         seq_len = attn_scores_pre.size(-1)
-        causal_mask = torch.triu(
-            torch.ones(seq_len, seq_len, device=x.device, dtype=torch.bool),
-            diagonal=1
-        )
+        causal_mask = torch.tril(
+            torch.ones(seq_len, seq_len, device=x.device, dtype=torch.bool)
+        ).unsqueeze(0).unsqueeze(1)
         
-        attn_scores_masked = attn_scores_pre.masked_fill(
-            causal_mask.unsqueeze(0).unsqueeze(1), -1e30
-        )
-        
-        bos_bias = torch.zeros_like(attn_scores_masked)
-        bos_bias[:, :, :, 0] = 1.0
-        attn_scores_masked = attn_scores_masked + bos_bias
+        attn_scores_masked = attn_scores_pre.masked_fill(~causal_mask, -1e30)
         
         attn_scores_masked = self.hook_attn_pre(attn_scores_masked)
-        
         attn_scores_pos = self.hook_attn_pos(attn_scores_masked)
         
         attn_matrix = self.hook_attn(
@@ -671,7 +663,6 @@ class CatAttention(nn.Module):
         z_flat = einops.rearrange(z, "b i q h -> b q (i h)")
         
         return z_flat
-
 
 class NumAttention(nn.Module):
     def __init__(
@@ -744,18 +735,28 @@ class NumAttention(nn.Module):
         )
         v = self.hook_v(torch.einsum("ihd,bpd->biph", self.W_V(), x_num))
         attn_scores_pre = torch.einsum("biph,biqh->biqp", k, q)
-        if mask is not None:
-            attn_scores_masked = attn_scores_pre.masked_fill(
-                (~mask).unsqueeze(1), -1e30
+        
+        seq_len = attn_scores_pre.size(-1)
+        causal_mask = torch.tril(
+            torch.ones(seq_len, seq_len, device=x_cat.device, dtype=torch.bool)
+        ).unsqueeze(0).unsqueeze(1)
+        
+        attn_scores_masked = attn_scores_pre.masked_fill(~causal_mask, -1e30)
+        
+        attn_scores_masked = self.hook_attn_pre(attn_scores_masked)
+        
+        attn_matrix = self.hook_attn(
+            self.sample_fn(
+                attn_scores_masked,
+                tau=self.temp,
+                dim=-1,
             )
-        else:
-            causal_mask = torch.ones_like(attn_scores_pre, dtype=torch.bool).triu(diagonal=1)
-            attn_scores_masked = attn_scores_pre.masked_fill(causal_mask, -1e30)
-        attn_matrix = self.hook_attn(self.hook_attn_pre(attn_scores_masked))
+        )
+        
         z = self.hook_z(torch.einsum("biph,biqp->biqh", v, attn_matrix))
         z_flat = einops.rearrange(z, "b i q h -> b q (i h)")
-        out = z_flat
-        return out
+        
+        return z_flat
 
 
 # MLP Layers
