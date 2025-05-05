@@ -1,0 +1,87 @@
+CUDA_VISIBLE_DEVICES: 0
+Torch sees CUDA: True
+
+=== Running double_hist ===
+I 2025-05-04T01:05:57 __main__:655: args: {'output_dir': 'output-base-1616/rasp/double_hist/k16_len16_L3_H4_M2/s0', 'dataset': 'double_hist', 'vocab_size': 16, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 2, 'n_heads_num': 2, 'd_mlp': 64, 'n_cat_mlps': 1, 'n_num_mlps': 1, 'mlp_vars_in': 2, 'n_layers': 3, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': False, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'mix', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-04T01:05:58 __main__:623: vocab size: 16
+I 2025-05-04T01:05:58 __main__:624: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-04T01:05:58 __main__:625: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-04T01:05:58 __main__:626: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-04T01:05:58 __main__:629: 16200/16200 unique training inputs
+I 2025-05-04T01:05:58 __main__:630: 2000/2000 unique test inputs not in train
+I 2025-05-04T01:20:06 __main__:452: train: loss=1.2202352285385132, acc=0.4539971369060946, metrics={}
+I 2025-05-04T01:20:06 __main__:452: val: loss=1.2497820854187012, acc=0.44486061648041264, metrics={}
+I 2025-05-04T01:20:06 __main__:452: test: loss=1.19508957862854, acc=0.4712656529516995, metrics={}
+I 2025-05-04T01:20:06 __main__:469: saving model to output-base-1616/rasp/double_hist/k16_len16_L3_H4_M2/s0/model.pt
+I 2025-05-04T01:20:06 __main__:473: saving code to output-base-1616/rasp/double_hist/k16_len16_L3_H4_M2/s0
+writing (231, 12) classifier weights to output-base-1616/rasp/double_hist/k16_len16_L3_H4_M2/s0/double_hist_weights.csv
+writing 1038 lines to output-base-1616/rasp/double_hist/k16_len16_L3_H4_M2/s0/double_hist.py
+I 2025-05-04T01:20:06 __main__:649: writing results to output-base-1616/rasp/double_hist/k16_len16_L3_H4_M2/s0/results.csv
+
+=== Running hist ===
+I 2025-05-04T01:20:10 __main__:655: args: {'output_dir': 'output-base-1616/rasp/hist/k16_len16_L1_H4_M2/s0', 'dataset': 'hist', 'vocab_size': 16, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 0, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 1, 'n_num_mlps': 1, 'mlp_vars_in': 2, 'n_layers': 1, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'num', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-04T01:20:11 __main__:623: vocab size: 16
+I 2025-05-04T01:20:11 __main__:624: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-04T01:20:11 __main__:625: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-04T01:20:11 __main__:626: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-04T01:20:11 __main__:629: 16200/16200 unique training inputs
+I 2025-05-04T01:20:11 __main__:630: 2000/2000 unique test inputs not in train
+I 2025-05-04T01:24:03 __main__:452: train: loss=0.0009739932138472795, acc=0.9997082629432876, metrics={}
+I 2025-05-04T01:24:03 __main__:452: val: loss=0.0009063008474186063, acc=0.9997543902738548, metrics={}
+I 2025-05-04T01:24:03 __main__:452: test: loss=0.0011030406458303332, acc=0.9993850626118068, metrics={}
+I 2025-05-04T01:24:03 __main__:469: saving model to output-base-1616/rasp/hist/k16_len16_L1_H4_M2/s0/model.pt
+I 2025-05-04T01:24:03 __main__:473: saving code to output-base-1616/rasp/hist/k16_len16_L1_H4_M2/s0
+writing (69, 7) classifier weights to output-base-1616/rasp/hist/k16_len16_L1_H4_M2/s0/hist_weights.csv
+writing 230 lines to output-base-1616/rasp/hist/k16_len16_L1_H4_M2/s0/hist.py
+I 2025-05-04T01:24:03 __main__:649: writing results to output-base-1616/rasp/hist/k16_len16_L1_H4_M2/s0/results.csv
+
+=== Running reverse ===
+I 2025-05-04T01:24:06 __main__:655: args: {'output_dir': 'output-base-1616/rasp/reverse/k16_len16_L3_H8_M2/s0', 'dataset': 'reverse', 'vocab_size': 16, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 4, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 1, 'n_num_mlps': 1, 'mlp_vars_in': 2, 'n_layers': 3, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-04T01:24:07 __main__:623: vocab size: 16
+I 2025-05-04T01:24:07 __main__:624: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-04T01:24:07 __main__:625: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-04T01:24:07 __main__:626: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-04T01:24:07 __main__:629: 16200/16200 unique training inputs
+I 2025-05-04T01:24:07 __main__:630: 2000/2000 unique test inputs not in train
+I 2025-05-04T01:38:25 __main__:452: train: loss=1.5839155912399292, acc=0.4040038867137264, metrics={}
+I 2025-05-04T01:38:25 __main__:452: val: loss=1.6115641593933105, acc=0.39139410360621896, metrics={}
+I 2025-05-04T01:38:25 __main__:452: test: loss=1.5876891613006592, acc=0.4000579374275782, metrics={}
+I 2025-05-04T01:38:25 __main__:469: saving model to output-base-1616/rasp/reverse/k16_len16_L3_H8_M2/s0/model.pt
+I 2025-05-04T01:38:25 __main__:473: saving code to output-base-1616/rasp/reverse/k16_len16_L3_H8_M2/s0
+writing (333, 13) classifier weights to output-base-1616/rasp/reverse/k16_len16_L3_H8_M2/s0/reverse_weights.csv
+writing 1053 lines to output-base-1616/rasp/reverse/k16_len16_L3_H8_M2/s0/reverse.py
+I 2025-05-04T01:38:25 __main__:649: writing results to output-base-1616/rasp/reverse/k16_len16_L3_H8_M2/s0/results.csv
+
+=== Running sort ===
+I 2025-05-04T01:38:29 __main__:655: args: {'output_dir': 'output-base-1616/rasp/sort/k16_len16_L3_H8_M4/s0', 'dataset': 'sort', 'vocab_size': 16, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 4, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 2, 'n_num_mlps': 2, 'mlp_vars_in': 2, 'n_layers': 3, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-04T01:38:29 __main__:623: vocab size: 16
+I 2025-05-04T01:38:29 __main__:624: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-04T01:38:29 __main__:625: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-04T01:38:29 __main__:626: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-04T01:38:29 __main__:629: 16200/16200 unique training inputs
+I 2025-05-04T01:38:29 __main__:630: 2000/2000 unique test inputs not in train
+I 2025-05-04T01:56:22 __main__:452: train: loss=0.5254521369934082, acc=0.7843231116572833, metrics={}
+I 2025-05-04T01:56:22 __main__:452: val: loss=0.5239881873130798, acc=0.7878846526030578, metrics={}
+I 2025-05-04T01:56:22 __main__:452: test: loss=0.5475853085517883, acc=0.781460023174971, metrics={}
+I 2025-05-04T01:56:22 __main__:469: saving model to output-base-1616/rasp/sort/k16_len16_L3_H8_M4/s0/model.pt
+I 2025-05-04T01:56:22 __main__:473: saving code to output-base-1616/rasp/sort/k16_len16_L3_H8_M4/s0
+writing (429, 13) classifier weights to output-base-1616/rasp/sort/k16_len16_L3_H8_M4/s0/sort_weights.csv
+writing 1786 lines to output-base-1616/rasp/sort/k16_len16_L3_H8_M4/s0/sort.py
+I 2025-05-04T01:56:23 __main__:649: writing results to output-base-1616/rasp/sort/k16_len16_L3_H8_M4/s0/results.csv
+
+=== Running most_freq ===
+I 2025-05-04T01:56:26 __main__:655: args: {'output_dir': 'output-base-1616/rasp/most_freq/k16_len16_L4_H8_M4/s0', 'dataset': 'most_freq', 'vocab_size': 16, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 4, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 2, 'n_num_mlps': 2, 'mlp_vars_in': 2, 'n_layers': 4, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-04T01:56:27 __main__:623: vocab size: 16
+I 2025-05-04T01:56:27 __main__:624: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-04T01:56:27 __main__:625: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-04T01:56:27 __main__:626: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-04T01:56:27 __main__:629: 16200/16200 unique training inputs
+I 2025-05-04T01:56:27 __main__:630: 2000/2000 unique test inputs not in train
+I 2025-05-04T02:19:31 __main__:452: train: loss=1.3671528100967407, acc=0.5107298175625709, metrics={}
+I 2025-05-04T02:19:31 __main__:452: val: loss=1.3699933290481567, acc=0.5085963404150804, metrics={}
+I 2025-05-04T02:19:31 __main__:452: test: loss=1.3622534275054932, acc=0.512801878354204, metrics={}
+I 2025-05-04T02:19:31 __main__:469: saving model to output-base-1616/rasp/most_freq/k16_len16_L4_H8_M4/s0/model.pt
+I 2025-05-04T02:19:31 __main__:473: saving code to output-base-1616/rasp/most_freq/k16_len16_L4_H8_M4/s0
+writing (561, 15) classifier weights to output-base-1616/rasp/most_freq/k16_len16_L4_H8_M4/s0/most_freq_weights.csv
+writing 2821 lines to output-base-1616/rasp/most_freq/k16_len16_L4_H8_M4/s0/most_freq.py
+I 2025-05-04T02:19:32 __main__:649: writing results to output-base-1616/rasp/most_freq/k16_len16_L4_H8_M4/s0/results.csv
