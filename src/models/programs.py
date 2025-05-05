@@ -1278,7 +1278,30 @@ class TransformerProgramModel(nn.Module):
         for block in self.blocks:
             x_cat, x_num = block(x_cat, x_num, mask=mask)
 
-        x_out = torch.cat([x_cat, x_num], dim=-1) if self.unembed_num else x_cat
+        if self.unembed_num:
+            if x_cat.size(1) != x_num.size(1):
+                if x_cat.size(1) > x_num.size(1):
+                    padding = torch.zeros(
+                        x_num.size(0),
+                        x_cat.size(1) - x_num.size(1),
+                        x_num.size(2),
+                        device=x_num.device
+                    )
+                    x_num_padded = torch.cat([x_num, padding], dim=1)
+                    x_out = torch.cat([x_cat, x_num_padded], dim=-1)
+                else:
+                    padding = torch.zeros(
+                        x_cat.size(0),
+                        x_num.size(1) - x_cat.size(1),
+                        x_cat.size(2),
+                        device=x_cat.device
+                    )
+                    x_cat_padded = torch.cat([x_cat, padding], dim=1)
+                    x_out = torch.cat([x_cat_padded, x_num], dim=-1)
+            else:
+                x_out = torch.cat([x_cat, x_num], dim=-1)
+        else:
+            x_out = x_cat
         x_out = self.hook_final(x_out)
 
         if self.pool_outputs:
