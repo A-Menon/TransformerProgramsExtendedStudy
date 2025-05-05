@@ -970,26 +970,43 @@ class TransformerProgramBlock(nn.Module):
             attn_out_cat = self.hook_attn_out_cat(
                 self.cat_attn(x_cat, mask=mask)
             )
+        
         if self.n_heads_num:
             attn_out_num = self.hook_attn_out_num(
                 self.num_attn(x_cat, x_num, mask=mask)
             )
+            if attn_out_num.size(1) != x_num.size(1):
+                fixed_attn_out = torch.zeros(
+                    attn_out_num.size(0),
+                    x_num.size(1),
+                    attn_out_num.size(-1),
+                    device=attn_out_num.device
+                )
+                min_seq_len = min(attn_out_num.size(1), x_num.size(1))
+                fixed_attn_out[:, :min_seq_len] = attn_out_num[:, :min_seq_len]
+                attn_out_num = fixed_attn_out
+        
         if self.n_heads_cat:
             x_cat = self.hook_resid_mid_cat(
                 torch.cat([x_cat, drop(attn_out_cat)], -1)
             )
+        
         if self.n_heads_num:
             x_num = self.hook_resid_mid_num(
                 torch.cat([x_num, drop(attn_out_num)], -1)
             )
+        
         if self.n_cat_mlps:
             cat_mlp_out = self.hook_cat_mlp_out(self.cat_mlp(x_cat))
             x_cat = torch.cat([x_cat, drop(cat_mlp_out)], -1)
+        
         if self.n_num_mlps:
             num_mlp_out = self.hook_num_mlp_out(self.num_mlp(x_num))
             x_cat = torch.cat([x_cat, drop(num_mlp_out)], -1)
+        
         x_cat = self.hook_resid_post_cat(x_cat)
         x_num = self.hook_resid_post_num(x_num)
+        
         return x_cat, x_num
 
 
