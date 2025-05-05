@@ -647,19 +647,17 @@ class CatAttention(nn.Module):
             diagonal=1
         )
         
-        attn_scores_pre = attn_scores_pre.masked_fill(
+        attn_scores_masked = attn_scores_pre.masked_fill(
             causal_mask.unsqueeze(0).unsqueeze(1), -1e30
         )
         
-        attn_scores_pre = self.hook_attn_pre(attn_scores_pre)
+        bos_bias = torch.zeros_like(attn_scores_masked)
+        bos_bias[:, :, :, 0] = 1.0
+        attn_scores_masked = attn_scores_masked + bos_bias
         
-        bias_shape = (self.n_heads, attn_scores_pre.size(-2), attn_scores_pre.size(-1))
-        if self.one_hot_input:
-            attn_scores_pos = self.hook_attn_pos(
-                (attn_scores_pre + 1e-20).log()
-            )
-        else:
-            attn_scores_pos = self.hook_attn_pos(attn_scores_pre)
+        attn_scores_masked = self.hook_attn_pre(attn_scores_masked)
+        
+        attn_scores_pos = self.hook_attn_pos(attn_scores_masked)
         
         attn_matrix = self.hook_attn(
             self.sample_fn(
