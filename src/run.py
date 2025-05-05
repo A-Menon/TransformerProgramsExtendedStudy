@@ -331,26 +331,13 @@ def run_test(
     preds = np.concatenate(preds, 0)
     true = np.concatenate(true, 0)
     m = true != y_pad_idx
-    preds_tensor = torch.tensor(preds) if isinstance(preds, (np.ndarray, np.int64)) else preds
-    true_tensor = torch.tensor(true) if isinstance(true, (np.ndarray, np.int64)) else true
+    preds_tensor = torch.tensor(preds, device='cpu') if isinstance(preds, (np.ndarray, np.int64)) else preds
+    true_tensor = torch.tensor(true, device='cpu') if isinstance(true, (np.ndarray, np.int64)) else true
+    m_tensor = torch.tensor(m, device='cpu') if isinstance(m, (np.ndarray, np.int64)) else m
 
-    if hasattr(m, 'device'):
-        if hasattr(preds_tensor, 'to'):
-            preds_tensor = preds_tensor.to(m.device)
-        if hasattr(true_tensor, 'to'):
-            true_tensor = true_tensor.to(m.device)
-
-    if hasattr(preds_tensor, 'eq') and hasattr(true_tensor, 'eq'):
-        correct = preds_tensor.eq(true_tensor)
-        if hasattr(m, 'sum'):
-            acc = (correct & m).sum().float() / m.sum().float() if m.sum() > 0 else torch.tensor(0.0)
-        else:
-            acc = correct.float().mean() if correct.numel() > 0 else torch.tensor(0.0)
-    else:
-        acc = torch.tensor(0.0)
-    true_tensor = torch.tensor(true, device=m.device) if isinstance(true, (np.ndarray, np.int64)) else true
-    correct = (preds_tensor == true_tensor)
-    acc = (correct & m).sum().float() / m.sum().float() if m.sum() > 0 else torch.tensor(0.0)
+    correct = preds_tensor.eq(true_tensor)
+    acc = (correct & m_tensor).sum().float() / m_tensor.sum().float() if m_tensor.sum() > 0 else torch.tensor(0.0)
+    
     metrics = {}
     if o_idx is not None:
         y_true = [idx_t[y[y != y_pad_idx]].tolist() for y in true]
