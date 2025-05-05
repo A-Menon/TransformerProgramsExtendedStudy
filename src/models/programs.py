@@ -9,9 +9,8 @@ from torch import nn
 from torch.nn import functional as F
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from models.improvements import PrefixSumCounts, HashSketchEmbed, ChunkAggregator, SparseExpertCountingNetwork, ContrastiveTokenRepresentations, PositionalNgramMemoryNetwork
 
-from utils import logging
+from src.utils import logging
 
 logger = logging.get_logger(__name__)
 
@@ -217,17 +216,9 @@ class OneHotPosEmbed(nn.Module):
 
     def forward(self, x, **kwargs):
         W_pos = self.get_W()
-        seq_len = x.shape[1]
-        
-        if seq_len > self.max_ctx:
-            pos_emb = W_pos.unsqueeze(0).repeat(x.size(0), 1, 1)
-            padding = torch.zeros(
-                x.size(0), seq_len - self.max_ctx, W_pos.shape[-1],
-                device=x.device
-            )
-            return torch.cat([pos_emb, padding], dim=1)
-        else:
-            return torch.zeros_like(x[:, :, :W_pos.shape[-1]]) + W_pos[:seq_len]
+        return (
+            torch.zeros_like(x[:, :, : W_pos.shape[-1]]) + W_pos[: x.shape[-2]]
+        )
 
 
 class ConstrainedRead(nn.Module):
@@ -435,27 +426,10 @@ class ClippedRelPosBias(nn.Module):
 
     def forward(self, scores):
         nq, nk = scores.shape[-2:]
-        if nq > self.max_ctx or nk > self.max_ctx:
-            extended_bias = torch.zeros(
-                self.bias.size(0),
-                nq, nk,
-                device=self.bias.device
-            )
-            
-            orig_nq = min(nq, self.max_ctx)
-            orig_nk = min(nk, self.max_ctx)
-            orig_bias = self.get_bias(nq=orig_nq, nk=orig_nk)
-            
-            extended_bias[:, :orig_nq, :orig_nk] = orig_bias
-            
-            if self.one_hot_input:
-                return (scores + 1e-20).log() + extended_bias.unsqueeze(0)
-            return scores + extended_bias.unsqueeze(0)
-        else:
-            bias = self.get_bias(nq=nq, nk=nk)
-            if self.one_hot_input:
-                return (scores + 1e-20).log() + bias.unsqueeze(0)
-            return scores + bias.unsqueeze(0)
+        bias = self.get_bias(nq=nq, nk=nk)
+        if self.one_hot_input:
+            return (scores + 1e-20).log() + bias.unsqueeze(0)
+        return scores + bias.unsqueeze(0)
 
 
 class FixedRelPosBias(nn.Module):
@@ -491,27 +465,10 @@ class FixedRelPosBias(nn.Module):
 
     def forward(self, scores):
         nq, nk = scores.shape[-2:]
-        if nq > self.max_ctx or nk > self.max_ctx:
-            extended_bias = torch.zeros(
-                self.bias.size(0),
-                nq, nk,
-                device=self.bias.device
-            )
-            
-            orig_nq = min(nq, self.max_ctx)
-            orig_nk = min(nk, self.max_ctx)
-            orig_bias = self.get_bias(nq=orig_nq, nk=orig_nk)
-            
-            extended_bias[:, :orig_nq, :orig_nk] = orig_bias
-            
-            if self.one_hot_input:
-                return (scores + 1e-20).log() + extended_bias.unsqueeze(0)
-            return scores + extended_bias.unsqueeze(0)
-        else:
-            bias = self.get_bias(nq=nq, nk=nk)
-            if self.one_hot_input:
-                return (scores + 1e-20).log() + bias.unsqueeze(0)
-            return scores + bias.unsqueeze(0)
+        bias = self.get_bias(nq=nq, nk=nk)
+        if self.one_hot_input:
+            return (scores + 1e-20).log() + bias.unsqueeze(0)
+        return scores + bias.unsqueeze(0)
 
 
 class NoRelPosBias(nn.Module):
@@ -533,27 +490,10 @@ class NoRelPosBias(nn.Module):
 
     def forward(self, scores):
         nq, nk = scores.shape[-2:]
-        if nq > self.max_ctx or nk > self.max_ctx:
-            extended_bias = torch.zeros(
-                self.bias.size(0),
-                nq, nk,
-                device=self.bias.device
-            )
-            
-            orig_nq = min(nq, self.max_ctx)
-            orig_nk = min(nk, self.max_ctx)
-            orig_bias = self.get_bias(nq=orig_nq, nk=orig_nk)
-            
-            extended_bias[:, :orig_nq, :orig_nk] = orig_bias
-            
-            if self.one_hot_input:
-                return (scores + 1e-20).log() + extended_bias.unsqueeze(0)
-            return scores + extended_bias.unsqueeze(0)
-        else:
-            bias = self.get_bias(nq=nq, nk=nk)
-            if self.one_hot_input:
-                return (scores + 1e-20).log() + bias.unsqueeze(0)
-            return scores + bias.unsqueeze(0)
+        bias = self.get_bias(nq=nq, nk=nk)
+        if self.one_hot_input:
+            return (scores * bias.unsqueeze(0) + 1e-10).log()
+        return scores + bias.log().unsqueeze(0)
 
 
 class CatAttention(nn.Module):
@@ -574,6 +514,7 @@ class CatAttention(nn.Module):
         super().__init__()
         d_out = d_head * n_heads
         self.model = model
+        # n_heads, d_head, d_model
         self.W_K = ConstrainedRead(
             d_in,
             d_head,
@@ -640,29 +581,30 @@ class CatAttention(nn.Module):
         )
         v = self.hook_v(torch.einsum("ihd,bpd->biph", self.W_V(), x))
         attn_scores_pre = torch.einsum("biph,biqh->biqp", k, q)
-        
-        seq_len = attn_scores_pre.size(-1)
-        causal_mask = torch.tril(
-            torch.ones(seq_len, seq_len, device=x.device, dtype=torch.bool)
-        ).unsqueeze(0).unsqueeze(1)
-        
-        attn_scores_masked = attn_scores_pre.masked_fill(~causal_mask, -1e30)
-        
-        attn_scores_masked = self.hook_attn_pre(attn_scores_masked)
-        attn_scores_pos = self.hook_attn_pos(attn_scores_masked)
-        
+
+        # Default to BOS
+        scores = attn_scores_pre.masked_fill((~mask).unsqueeze(1), 0).sum(-1)
+        max_score = scores / (scores + 1e-10)
+        attn_scores_pre[:, :, :, 0] += F.relu(1.0 - max_score)
+
+        attn_scores_pre = self.hook_attn_pre(attn_scores_pre)
+        attn_scores_pos = self.hook_attn_pos(self.rel_pos_bias(attn_scores_pre))
+
+        attn_scores_masked = attn_scores_pos.masked_fill(
+            (~mask).unsqueeze(1), -1e30
+        )
         attn_matrix = self.hook_attn(
             self.sample_fn(
-                attn_scores_pos / self.attention_temp,
+                attn_scores_masked / self.attention_temp,
                 tau=self.temp,
                 dim=-1,
             )
         )
-        
         z = self.hook_z(torch.einsum("biph,biqp->biqh", v, attn_matrix))
         z_flat = einops.rearrange(z, "b i q h -> b q (i h)")
-        
-        return z_flat
+        out = z_flat
+        return out
+
 
 class NumAttention(nn.Module):
     def __init__(
@@ -679,7 +621,6 @@ class NumAttention(nn.Module):
         **kwargs,
     ):
         super().__init__()
-        self.temp = temp
         d_out = d_head * n_heads
         self.model = model
         # n_heads, d_head, d_model
@@ -735,35 +676,18 @@ class NumAttention(nn.Module):
             torch.einsum("ihd,bpd->biph", self.W_pred(self.W_Q()), x_cat)
         )
         v = self.hook_v(torch.einsum("ihd,bpd->biph", self.W_V(), x_num))
-        
-        B, I, P, H = k.shape
-        _, _, Q, _ = q.shape
-        
         attn_scores_pre = torch.einsum("biph,biqh->biqp", k, q)
-        
-        causal_mask = torch.ones(Q, P, device=x_cat.device, dtype=torch.bool).triu(diagonal=1)
-        causal_mask = causal_mask.unsqueeze(0).unsqueeze(1)
-        
-        attn_scores_masked = attn_scores_pre.masked_fill(causal_mask, -1e30)
-        attn_scores_masked = self.hook_attn_pre(attn_scores_masked)
-        
-        attn_matrix = self.hook_attn(self.sample_fn(attn_scores_masked, dim=-1))
-        
-        if attn_matrix.shape[-1] != v.shape[-2]:
-            P_v = v.shape[-2]
-            if attn_matrix.shape[-1] > P_v:
-                attn_matrix = attn_matrix[..., :P_v]
-            else:
-                padding = torch.zeros(
-                    B, I, Q, P_v - attn_matrix.shape[-1],
-                    device=attn_matrix.device
-                )
-                attn_matrix = torch.cat([attn_matrix, padding], dim=-1)
-        
+        if mask is not None:
+            attn_scores_masked = attn_scores_pre.masked_fill(
+                (~mask).unsqueeze(1), 0
+            )
+        else:
+            attn_scores_masked = torch.tril(attn_scores_pre)
+        attn_matrix = self.hook_attn(self.hook_attn_pre(attn_scores_masked))
         z = self.hook_z(torch.einsum("biph,biqp->biqh", v, attn_matrix))
         z_flat = einops.rearrange(z, "b i q h -> b q (i h)")
-        
-        return z_flat
+        out = z_flat
+        return out
 
 
 # MLP Layers
@@ -970,54 +894,26 @@ class TransformerProgramBlock(nn.Module):
             attn_out_cat = self.hook_attn_out_cat(
                 self.cat_attn(x_cat, mask=mask)
             )
-        
         if self.n_heads_num:
             attn_out_num = self.hook_attn_out_num(
                 self.num_attn(x_cat, x_num, mask=mask)
             )
-            if attn_out_num.size(1) != x_num.size(1):
-                fixed_attn_out = torch.zeros(
-                    attn_out_num.size(0),
-                    x_num.size(1),
-                    attn_out_num.size(-1),
-                    device=attn_out_num.device
-                )
-                min_seq_len = min(attn_out_num.size(1), x_num.size(1))
-                fixed_attn_out[:, :min_seq_len] = attn_out_num[:, :min_seq_len]
-                attn_out_num = fixed_attn_out
-        
         if self.n_heads_cat:
             x_cat = self.hook_resid_mid_cat(
                 torch.cat([x_cat, drop(attn_out_cat)], -1)
             )
-        
         if self.n_heads_num:
             x_num = self.hook_resid_mid_num(
                 torch.cat([x_num, drop(attn_out_num)], -1)
             )
-        
         if self.n_cat_mlps:
             cat_mlp_out = self.hook_cat_mlp_out(self.cat_mlp(x_cat))
             x_cat = torch.cat([x_cat, drop(cat_mlp_out)], -1)
-        
         if self.n_num_mlps:
             num_mlp_out = self.hook_num_mlp_out(self.num_mlp(x_num))
-            if num_mlp_out.size(1) != x_cat.size(1):
-                fixed_mlp_out = torch.zeros(
-                    num_mlp_out.size(0),
-                    x_cat.size(1),
-                    num_mlp_out.size(-1),
-                    device=num_mlp_out.device
-                )
-                min_seq_len = min(num_mlp_out.size(1), x_cat.size(1))
-                fixed_mlp_out[:, :min_seq_len] = num_mlp_out[:, :min_seq_len]
-                num_mlp_out = fixed_mlp_out
-            
             x_cat = torch.cat([x_cat, drop(num_mlp_out)], -1)
-        
         x_cat = self.hook_resid_post_cat(x_cat)
         x_num = self.hook_resid_post_num(x_num)
-        
         return x_cat, x_num
 
 
@@ -1056,18 +952,9 @@ class TransformerProgramModel(nn.Module):
         one_hot_embed=False,
         count_only=False,
         selector_width=False,
-        improvements=None,
         **kwargs,
     ):
         super().__init__()
-        improvements = improvements or {}
-        self.use_prefix = "prefixsum" in improvements
-        self.use_sketch = "sketch" in improvements
-        self.use_chunks = "chunks" in improvements
-        self.use_experts = "experts" in improvements
-        self.use_contrast = "contrast" in improvements
-        self.use_mem = "memory" in improvements
-
         self.cache = {}
         self.use_cache = use_cache
         self.d_pos = d_pos or d_var
@@ -1085,35 +972,20 @@ class TransformerProgramModel(nn.Module):
         self.d_model = d_model = d_var * n_vars_cat
         self.n_layers = n_layers
 
-        if self.use_sketch:
-            self.hash_embed = HashSketchEmbed(d_vocab)
-            self.embed = CatEmbed(
-                self.hash_embed.kp,
-                n_vars=n_vars_cat,
-                d_var=d_var,
-                temp=temp,
-                sample_fn=sample_fn,
-                one_hot_embed=one_hot_embed,
-            )
-        else:
-            self.embed = CatEmbed(
-                d_vocab,
-                n_vars=n_vars_cat,
-                d_var=d_var,
-                temp=temp,
-                init_emb=init_emb,
-                sample_fn=sample_fn,
-                one_hot_embed=one_hot_embed,
-            )
+        self.embed = CatEmbed(
+            d_vocab,
+            n_vars=n_vars_cat,
+            d_var=d_var,
+            temp=temp,
+            init_emb=init_emb,
+            sample_fn=sample_fn,
+            one_hot_embed=one_hot_embed,
+        )
         self.num_embed = NumEmbed(
             d_vocab,
             n_vars=n_vars_num,
             count_only=count_only,
         )
-        if self.use_prefix:
-            self.prefix_layer = PrefixSumCounts(d_vocab)
-        if self.use_chunks:
-            self.chunker = ChunkAggregator(block_size=8)
         self.pos_embed = OneHotPosEmbed(
             n_ctx,
             d_var,
@@ -1125,31 +997,18 @@ class TransformerProgramModel(nn.Module):
             n_heads_cat = n_heads
         if n_heads_num is None:
             n_heads_num = n_heads
+
         self.n_heads_cat, self.n_heads_num = n_heads_cat, n_heads_num
-        extra_cat = 0
-        extra_num = 0
-        if self.use_contrast:
-            self.contrast_layer = ContrastiveTokenRepresentations(d_vocab)
-            extra_cat += self.contrast_layer.n_buckets
-        if self.use_experts:
-            expert_in = d_model + extra_cat
-            self.expert_layer = SparseExpertCountingNetwork(expert_in, n_experts=4)
-            extra_num += 1
-        if self.use_prefix:
-            extra_num += 1
-        if self.use_mem:
-            self.mem_net = PositionalNgramMemoryNetwork(d_model + extra_cat)
+
         layer_out_cat = d_var * n_heads_cat + (
             d_head * (n_cat_mlps + n_num_mlps)
         )
         layer_out_num = n_heads_num
-        total_width = (d_model + d_pos + extra_cat + n_layers * layer_out_cat + 
-                       (n_vars_num * int(unembed_num)) + extra_num + n_layers * (layer_out_num * int(unembed_num)))
         self.blocks = nn.ModuleList(
             [
                 TransformerProgramBlock(
-                    d_in_cat=d_model + d_pos + i * layer_out_cat + extra_cat,
-                    d_in_num=n_vars_num + i * layer_out_num + extra_num,
+                    d_in_cat=d_model + d_pos + i * layer_out_cat,
+                    d_in_num=n_vars_num + i * layer_out_num,
                     d_mlp=d_mlp,
                     d_head=d_head,
                     n_heads_num=n_heads_num,
@@ -1175,7 +1034,10 @@ class TransformerProgramModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.unembed = Unembed(
             d_vocab_out or d_vocab,
-            total_width,
+            d_model
+            + d_pos
+            + (n_vars_num * int(unembed_num))
+            + n_layers * ((layer_out_num * int(unembed_num)) + layer_out_cat),
             mask=unembed_mask,
         )
 
@@ -1198,117 +1060,32 @@ class TransformerProgramModel(nn.Module):
                 module.set_temp(temp, sample_fn=sample_fn)
 
     def forward(self, x, mask=None, **kwargs):
-        B, L = x.size()
-        if mask is None:
-            mask = torch.ones(B, L, L, device=x.device, dtype=torch.bool)
-            
-        x_hashed = self.hash_embed(x) if self.use_sketch else x
-
-        original_seq_length = L
-        num_chunk_tokens = 0
-
-        if self.use_chunks:
-            x_hashed, chunk_cat_ids, _ = self.chunker(
-                x_hashed,
-                cat_embed_f=self.embed,
-                num_embed_f=self.num_embed,
-            )
-
-            chunk_cat = self.embed(chunk_cat_ids)
-            num_chunk_tokens = chunk_cat.size(1)
-
-            Bk = chunk_cat.size(1)
-            top = torch.ones(B, Bk, Bk + L, device=mask.device, dtype=torch.bool)
-            bottom = torch.cat(
-                [torch.ones(B, L, Bk, device=mask.device, dtype=torch.bool), mask], 2
-            )
-            mask = torch.cat([top, bottom], 1)
-        else:
-            chunk_cat = None
-
-        contrast_cat = None
-        if self.use_contrast:
-            tokens_flat = x_hashed.reshape(x_hashed.size(0), -1) if x_hashed.dim() == 3 else x_hashed
-            if self.use_chunks:
-                chunk_ids_flat = chunk_cat_ids.view(chunk_cat_ids.size(0), -1)
-                tokens_for_contrast = torch.cat([chunk_ids_flat, tokens_flat], dim=1)
-            else:
-                tokens_for_contrast = tokens_flat
-            one_hot = F.one_hot(
-                tokens_for_contrast,
-                num_classes=self.contrast_layer.prototypes.size(1)
-            )
-            contrast_cat = self.contrast_layer(one_hot.float())
-
-        x_cat = self.embed(x_hashed)
-        if chunk_cat is not None:
-            x_cat = torch.cat([chunk_cat, x_cat], dim=1)
-        if contrast_cat is not None:
-            x_cat = torch.cat([contrast_cat, x_cat], dim=-1)
-
-        x_num = self.num_embed(x)
-        if self.use_prefix:
-            x_num = torch.cat([x_num, self.prefix_layer(x)], dim=-1)
-        if chunk_cat is not None:
-            zeros_num = torch.zeros(B, Bk, x_num.size(-1), device=x_num.device)
-            x_num = torch.cat([zeros_num, x_num], 1)
-
-        if self.use_mem:
-            x_cat = x_cat + self.mem_net(x_cat)
-        
-        if self.use_experts:
-            expert_feat = self.expert_layer(x_cat)
-            if expert_feat.size(-1) != 1:
-                expert_feat = expert_feat.mean(-1, keepdim=True)
-            if expert_feat.size(1) != x_num.size(1):
-                fixed_expert = torch.zeros(
-                    expert_feat.size(0), 
-                    x_num.size(1),
-                    expert_feat.size(2),
-                    device=expert_feat.device
-                )
-                min_seq_len = min(expert_feat.size(1), x_num.size(1))
-                fixed_expert[:, :min_seq_len] = expert_feat[:, :min_seq_len]
-                expert_feat = fixed_expert
-            x_num = torch.cat([x_num, expert_feat], dim=-1)
-
+        x_cat = self.embed(x)
         if self.pos_embed is not None:
-            x_cat = torch.cat([x_cat, self.pos_embed(x_cat)], dim=-1)
-
+            x_cat = torch.cat([x_cat, self.pos_embed(x_cat)], -1)
+        x_num = self.num_embed(x)
         for block in self.blocks:
             x_cat, x_num = block(x_cat, x_num, mask=mask)
-
         if self.unembed_num:
-            if x_cat.size(1) != x_num.size(1):
-                if x_cat.size(1) > x_num.size(1):
-                    padding = torch.zeros(
-                        x_num.size(0),
-                        x_cat.size(1) - x_num.size(1),
-                        x_num.size(2),
-                        device=x_num.device
-                    )
-                    x_num_padded = torch.cat([x_num, padding], dim=1)
-                    x_out = torch.cat([x_cat, x_num_padded], dim=-1)
-                else:
-                    padding = torch.zeros(
-                        x_cat.size(0),
-                        x_num.size(1) - x_cat.size(1),
-                        x_cat.size(2),
-                        device=x_cat.device
-                    )
-                    x_cat_padded = torch.cat([x_cat, padding], dim=1)
-                    x_out = torch.cat([x_cat_padded, x_num], dim=-1)
-            else:
-                x_out = torch.cat([x_cat, x_num], dim=-1)
+            x = torch.cat([x_cat, x_num], -1)
         else:
-            x_out = x_cat
-        x_out = self.hook_final(x_out)
-        if self.use_chunks or num_chunk_tokens > 0:
-            logits = self.unembed(x_out)
-            return logits[:, num_chunk_tokens:num_chunk_tokens+original_seq_length]
-        else:
-            logits = self.unembed(x_out)
-            return logits[:, :original_seq_length]
+            x = x_cat
+
+        x = self.hook_final(x)
+
+        if self.pool_outputs:
+            x = torch.cat(
+                [
+                    x.masked_fill(~mask[:, 0].unsqueeze(-1), 0).mean(
+                        1, keepdims=True
+                    ),
+                    x[:, 1:],
+                ],
+                1,
+            )
+            x = self.hook_pool(x)
+
+        return self.unembed(x)
 
     def set_use_cache(self, use_cache):
         self.use_cache = use_cache

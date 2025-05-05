@@ -18,15 +18,15 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from models.transformers import Transformer
-from models.programs import (
+from src.models.transformers import Transformer
+from src.models.programs import (
     TransformerProgramModel,
     argmax,
     gumbel_hard,
     gumbel_soft,
     softmax,
 )
-from utils import code_utils, data_utils, logging, metric_utils
+from src.utils import code_utils, data_utils, logging, metric_utils
 
 logger = logging.get_logger(__name__)
 
@@ -67,14 +67,6 @@ def parse_args():
     parser.add_argument("--rel_pos_bias", type=str, default="fixed")
     parser.add_argument("--mlp_type", type=str, default="cat")
     parser.add_argument("--autoregressive", action="store_true")
-
-    # ----- New Improvement Toggles -----
-    parser.add_argument(
-        "--improvements",
-        type=str,
-        default="",
-        help="comma-separated: prefixsum, sketch, chunks",
-    )
 
     parser.add_argument(
         "--glove_embeddings", type=str, default="data/glove.840B.300d.txt"
@@ -126,8 +118,6 @@ def parse_args():
 
     return args
 
-def get_improvement_set(args):
-    return {s.strip().lower() for s in args.improvements.split(",") if s}
 
 def set_seed(seed):
     random.seed(seed)
@@ -191,7 +181,7 @@ def run_training(
                 mask = torch.tril(mask)
             lst = []
             losses_lst = []
-            tgts = y.to(model.device).long()
+            tgts = y.to(model.device)
             for _ in range(n_samples):
                 logits = model(x, mask=mask)
                 if loss_agg == "per_seq":
@@ -313,7 +303,7 @@ def run_test(
             mask = torch.tril(mask)
         with torch.no_grad():
             log_probs = model(x, mask=mask).log_softmax(-1)
-        tgts = y.to(model.device).long()
+        tgts = y.to(model.device)
         if loss_agg == "per_seq":
             losses = -log_probs.gather(2, tgts.unsqueeze(-1))
             losses = losses.masked_fill(
@@ -331,13 +321,7 @@ def run_test(
     preds = np.concatenate(preds, 0)
     true = np.concatenate(true, 0)
     m = true != y_pad_idx
-    preds_tensor = torch.tensor(preds, device='cpu') if isinstance(preds, (np.ndarray, np.int64)) else preds
-    true_tensor = torch.tensor(true, device='cpu') if isinstance(true, (np.ndarray, np.int64)) else true
-    m_tensor = torch.tensor(m, device='cpu') if isinstance(m, (np.ndarray, np.int64)) else m
-
-    correct = preds_tensor.eq(true_tensor)
-    acc = (correct & m_tensor).sum().float() / m_tensor.sum().float() if m_tensor.sum() > 0 else torch.tensor(0.0)
-    
+    acc = (preds == true)[m].mean()
     metrics = {}
     if o_idx is not None:
         y_true = [idx_t[y[y != y_pad_idx]].tolist() for y in true]
@@ -377,7 +361,6 @@ def run_program(
     Y_test=None,
     X_val=None,
     Y_val=None,
-    improvements=None
 ):
     if args.d_var is None:
         d = max(len(idx_w), X_train.shape[-1])
@@ -418,7 +401,6 @@ def run_program(
         one_hot_embed=args.one_hot_embed,
         count_only=args.count_only,
         selector_width=args.selector_width,
-        improvements=improvements
     ).to(torch.device(args.device))
 
     opt = Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
@@ -647,11 +629,9 @@ def run(args):
     logger.info(f"{len(a)}/{len(train)} unique training inputs")
     logger.info(f"{len(b - a)}/{len(test)} unique test inputs not in train")
 
-    improvements = get_improvement_set(args)
     f = run_standard if args.standard else run_program
     results = f(
         args,
-        improvements=improvements,
         train=train,
         test=test,
         idx_w=idx_w,
