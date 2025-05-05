@@ -331,7 +331,7 @@ def run_test(
     preds = np.concatenate(preds, 0)
     true = np.concatenate(true, 0)
     m = true != y_pad_idx
-    acc = (preds == true)[m].mean()
+    acc = ((preds == true) & m).sum().float() / m.sum().float() if m.sum() > 0 else torch.tensor(0.0)
     metrics = {}
     if o_idx is not None:
         y_true = [idx_t[y[y != y_pad_idx]].tolist() for y in true]
