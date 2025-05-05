@@ -1127,10 +1127,12 @@ class TransformerProgramModel(nn.Module):
 
         contrast_cat = None
         if self.use_contrast:
+            tokens_flat = x_hashed.reshape(x_hashed.size(0), -1) if x_hashed.dim() == 3 else x_hashed
             if self.use_chunks:
-                tokens_for_contrast = torch.cat([chunk_cat_ids, x_hashed], dim=1)
+                chunk_ids_flat = chunk_cat_ids.view(chunk_cat_ids.size(0), -1)
+                tokens_for_contrast = torch.cat([chunk_ids_flat, tokens_flat], dim=1)
             else:
-                tokens_for_contrast = x_hashed
+                tokens_for_contrast = tokens_flat
             one_hot = F.one_hot(
                 tokens_for_contrast,
                 num_classes=self.contrast_layer.prototypes.size(1)
