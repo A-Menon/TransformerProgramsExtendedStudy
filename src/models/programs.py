@@ -1036,7 +1036,7 @@ class TransformerProgramModel(nn.Module):
             self.contrast_layer = ContrastiveTokenRepresentations(d_vocab)
             extra_cat += self.contrast_layer.n_buckets
         if self.use_mem:
-            self.mem_net = PositionalNgramMemoryNetwork(d_var*n_vars_cat)
+            self.mem_net = PositionalNgramMemoryNetwork(d_model + extra_cat)
         layer_out_cat = d_var * n_heads_cat + (
             d_head * (n_cat_mlps + n_num_mlps)
         )
