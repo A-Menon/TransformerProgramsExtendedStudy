@@ -1155,11 +1155,38 @@ class TransformerProgramModel(nn.Module):
             x_cat = x_cat + self.mem_net(x_cat)
         
         if self.use_experts:
-            expert_feat = self.expert_layer(x_cat)
+            print(f"x_cat shape: {x_cat.shape}, x_num shape: {x_num.shape}")
+            
+            if self.use_chunks:
+                chunk_len = num_chunk_tokens
+                main_len = x_cat.size(1) - chunk_len
+                
+                if chunk_len > 0:
+                    chunk_expert = self.expert_layer(x_cat[:, :chunk_len])
+                main_expert = self.expert_layer(x_cat[:, chunk_len:])
+                if chunk_len > 0:
+                    expert_feat = torch.cat([chunk_expert, main_expert], dim=1)
+                else:
+                    expert_feat = main_expert
+            else:
+                expert_feat = self.expert_layer(x_cat)
+            
+            print(f"Expert feature shape: {expert_feat.shape}")
+            
             if expert_feat.size(1) != x_num.size(1):
-                raise ValueError(f"Expert feature sequence length {expert_feat.size(1)} doesn't match x_num sequence length {x_num.size(1)}")
-            if expert_feat.size(-1) != 1:
-                expert_feat = expert_feat.mean(-1, keepdim=True)
+                if expert_feat.size(-1) != 1:
+                    expert_feat = expert_feat.mean(-1, keepdim=True)
+                if expert_feat.size(1) > x_num.size(1):
+                    expert_feat = expert_feat[:, :x_num.size(1)]
+                elif expert_feat.size(1) < x_num.size(1):
+                    padding = torch.zeros(
+                        expert_feat.size(0), 
+                        x_num.size(1) - expert_feat.size(1), 
+                        expert_feat.size(2),
+                        device=expert_feat.device
+                    )
+                    expert_feat = torch.cat([expert_feat, padding], dim=1)
+            print(f"Final shapes - x_num: {x_num.shape}, expert_feat: {expert_feat.shape}")
             x_num = torch.cat([x_num, expert_feat], dim=-1)
 
         if self.pos_embed is not None:
