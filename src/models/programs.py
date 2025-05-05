@@ -1127,7 +1127,10 @@ class TransformerProgramModel(nn.Module):
 
         contrast_cat = None
         if self.use_contrast:
-            one_hot = F.one_hot(x, num_classes=self.contrast_layer.prototypes.size(1))
+            one_hot = F.one_hot(
+                x_hashed,
+                num_classes=self.contrast_layer.prototypes.size(1)
+            )
             contrast_cat = self.contrast_layer(one_hot.float())
 
         x_cat = self.embed(x_hashed)
