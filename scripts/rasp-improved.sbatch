@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=tp-rasp
-#SBATCH --array=1-7
+#SBATCH --array=1-1
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
@@ -10,12 +10,6 @@
 
 # list of single improvements + "all"
 IMPROV_LIST=(
-  "prefixsum"
-  "sketch"
-  "chunks"
-  "experts"
-  "contrast"
-  "memory"
   "prefixsum,sketch,chunks,experts,contrast,memory"
 )
 IDX=$((SLURM_ARRAY_TASK_ID - 1))
