@@ -10,6 +10,8 @@ from torch.nn import functional as F
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
+from models.improvements import PrefixSumCounts
+
 from src.utils import logging
 
 logger = logging.get_logger(__name__)
@@ -952,9 +954,13 @@ class TransformerProgramModel(nn.Module):
         one_hot_embed=False,
         count_only=False,
         selector_width=False,
+        use_prefix_counts=False,
         **kwargs,
     ):
         super().__init__()
+        self.use_prefix_counts = use_prefix_counts
+        if use_prefix_counts:
+            self.prefix_counts = PrefixSumCounts(d_vocab)
         self.cache = {}
         self.use_cache = use_cache
         self.d_pos = d_pos or d_var
@@ -1064,6 +1070,9 @@ class TransformerProgramModel(nn.Module):
         if self.pos_embed is not None:
             x_cat = torch.cat([x_cat, self.pos_embed(x_cat)], -1)
         x_num = self.num_embed(x)
+        if self.use_prefix_counts:
+            counts = self.prefix_counts(x)
+            x_num = torch.cat([x_num, counts.float()], dim=-1)
         for block in self.blocks:
             x_cat, x_num = block(x_cat, x_num, mask=mask)
         if self.unembed_num:

@@ -76,6 +76,12 @@ def parse_args():
     parser.add_argument("--unembed_mask", type=int, default=1)
     parser.add_argument("--pool_outputs", type=int, default=0)
 
+    parser.add_argument(
+        "--use_prefix_counts",
+        action="store_true",
+        help="If set, prepend running token‐count features via PrefixSumCounts"
+    )
+
     # Standard model
     parser.add_argument("--standard", action="store_true")
     parser.add_argument("--d_model", type=int, default=64)
@@ -401,6 +407,7 @@ def run_program(
         one_hot_embed=args.one_hot_embed,
         count_only=args.count_only,
         selector_width=args.selector_width,
+        use_prefix_counts=args.use_prefix_counts,
     ).to(torch.device(args.device))
 
     opt = Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
