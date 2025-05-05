@@ -1303,6 +1303,7 @@ class TransformerProgramModel(nn.Module):
         else:
             x_out = x_cat
         x_out = self.hook_final(x_out)
+        return self.unembed(x_out[:, num_chunk_tokens:] if self.pool_outputs else x_out)
 
     def set_use_cache(self, use_cache):
         self.use_cache = use_cache
