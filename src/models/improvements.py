@@ -57,15 +57,17 @@ class ChunkAggregator(nn.Module):
             L += pad_len
         n_blocks = L // self.block
 
-        blocks = tokens.view(
-            B, n_blocks, self.block, H)
+        blocks = tokens.view(B, n_blocks, self.block, H)
 
         cat_ids = blocks[:, :, 0, :].contiguous().view(B, -1).long()
         vocab = num_embed_f.get_W().size(0)
-        one_hot = F.one_hot(blocks.long(), num_classes=vocab).float()  
-        hist = one_hot.sum(2).sum(3)
-        num_hist = hist.view(B, n_blocks, vocab)
+        one_hot = F.one_hot(blocks.long().view(B, -1), num_classes=vocab).float()
+        one_hot = one_hot.view(B, n_blocks, self.block, H, vocab)
 
+        hist = one_hot.sum(dim=2).sum(dim=2)
+
+        assert hist.shape == (B, n_blocks, vocab), f"Expected shape {(B, n_blocks, vocab)} but got {hist.shape}"
+    
         new_tokens = torch.cat([cat_ids, tokens.reshape(B, -1)], 1)
 
         return new_tokens, cat_ids, num_hist
