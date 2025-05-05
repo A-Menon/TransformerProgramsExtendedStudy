@@ -331,7 +331,23 @@ def run_test(
     preds = np.concatenate(preds, 0)
     true = np.concatenate(true, 0)
     m = true != y_pad_idx
-    preds_tensor = torch.tensor(preds, device=m.device) if isinstance(preds, (np.ndarray, np.int64)) else preds
+    preds_tensor = torch.tensor(preds) if isinstance(preds, (np.ndarray, np.int64)) else preds
+    true_tensor = torch.tensor(true) if isinstance(true, (np.ndarray, np.int64)) else true
+
+    if hasattr(m, 'device'):
+        if hasattr(preds_tensor, 'to'):
+            preds_tensor = preds_tensor.to(m.device)
+        if hasattr(true_tensor, 'to'):
+            true_tensor = true_tensor.to(m.device)
+
+    if hasattr(preds_tensor, 'eq') and hasattr(true_tensor, 'eq'):
+        correct = preds_tensor.eq(true_tensor)
+        if hasattr(m, 'sum'):
+            acc = (correct & m).sum().float() / m.sum().float() if m.sum() > 0 else torch.tensor(0.0)
+        else:
+            acc = correct.float().mean() if correct.numel() > 0 else torch.tensor(0.0)
+    else:
+        acc = torch.tensor(0.0)
     true_tensor = torch.tensor(true, device=m.device) if isinstance(true, (np.ndarray, np.int64)) else true
     correct = (preds_tensor == true_tensor)
     acc = (correct & m).sum().float() / m.sum().float() if m.sum() > 0 else torch.tensor(0.0)
