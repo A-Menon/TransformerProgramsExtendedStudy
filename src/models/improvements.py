@@ -51,8 +51,8 @@ class ChunkAggregator(nn.Module):
         pad_len = (-L) % self.block
         if pad_len:
             pad = torch.zeros(B, pad_len, H,
-                              dtype=tokens.dtype,
-                              device=tokens.device)
+                            dtype=tokens.dtype,
+                            device=tokens.device)
             tokens = torch.cat([tokens, pad], dim=1)
             L += pad_len
         n_blocks = L // self.block
@@ -67,7 +67,7 @@ class ChunkAggregator(nn.Module):
         hist = one_hot.sum(dim=2).sum(dim=2)
 
         assert hist.shape == (B, n_blocks, vocab), f"Expected shape {(B, n_blocks, vocab)} but got {hist.shape}"
-    
+        
         new_tokens = torch.cat([cat_ids, tokens.reshape(B, -1)], 1)
 
         return new_tokens, cat_ids, hist

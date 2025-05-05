@@ -1304,13 +1304,6 @@ class TransformerProgramModel(nn.Module):
             x_out = x_cat
         x_out = self.hook_final(x_out)
 
-        if self.pool_outputs:
-            pooled = x_out.masked_fill(~mask[:, 0].unsqueeze(-1), 0).mean(1, keepdims=True)
-            x_out = torch.cat([pooled, x_out[:, 1:]], dim=1)
-            x_out = self.hook_pool(x_out)
-
-        return self.unembed(x_out)
-
     def set_use_cache(self, use_cache):
         self.use_cache = use_cache
 
