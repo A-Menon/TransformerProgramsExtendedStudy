@@ -331,7 +331,10 @@ def run_test(
     preds = np.concatenate(preds, 0)
     true = np.concatenate(true, 0)
     m = true != y_pad_idx
-    acc = ((preds == true) & m).sum().float() / m.sum().float() if m.sum() > 0 else torch.tensor(0.0)
+    preds_tensor = torch.tensor(preds, device=m.device) if isinstance(preds, (np.ndarray, np.int64)) else preds
+    true_tensor = torch.tensor(true, device=m.device) if isinstance(true, (np.ndarray, np.int64)) else true
+    correct = (preds_tensor == true_tensor)
+    acc = (correct & m).sum().float() / m.sum().float() if m.sum() > 0 else torch.tensor(0.0)
     metrics = {}
     if o_idx is not None:
         y_true = [idx_t[y[y != y_pad_idx]].tolist() for y in true]
