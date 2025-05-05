@@ -79,7 +79,7 @@ for DATASET in "${TASKS[@]}"; do
       $COUNT_ONLY $MLP_TYPE \
       --selector_width 0 \
       --seed "$SEED" --unique 1 \
-      --improvements prefixsum,sketch,chunks,experts,contrast,memory \
+      --use_prefix_counts \
       --save --save_code \
       --output_dir "output-improved/rasp-improved-all/${DATASET}/k${VOCAB}_len${MAX}_L${L}_H${H}_M${M}/s${SEED}"
 done
