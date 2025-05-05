@@ -959,6 +959,7 @@ class TransformerProgramModel(nn.Module):
     ):
         super().__init__()
         self.use_prefix_counts = use_prefix_counts
+        base_num_dim = n_vars_num + (1 if use_prefix_counts else 0)
         if use_prefix_counts:
             self.prefix_counts = PrefixSumCounts(d_vocab)
         self.cache = {}
@@ -1006,15 +1007,13 @@ class TransformerProgramModel(nn.Module):
 
         self.n_heads_cat, self.n_heads_num = n_heads_cat, n_heads_num
 
-        layer_out_cat = d_var * n_heads_cat + (
-            d_head * (n_cat_mlps + n_num_mlps)
-        )
+        layer_out_cat = d_var * n_heads_cat + (d_head * (n_cat_mlps + n_num_mlps))
         layer_out_num = n_heads_num
         self.blocks = nn.ModuleList(
             [
                 TransformerProgramBlock(
                     d_in_cat=d_model + d_pos + i * layer_out_cat,
-                    d_in_num=n_vars_num + i * layer_out_num,
+                    d_in_num=base_num_dim + i * layer_out_num,
                     d_mlp=d_mlp,
                     d_head=d_head,
                     n_heads_num=n_heads_num,
@@ -1038,12 +1037,15 @@ class TransformerProgramModel(nn.Module):
         )
         self.n_cat_mlps, self.n_num_mlps = n_cat_mlps, n_num_mlps
         self.dropout = nn.Dropout(dropout)
-        self.unembed = Unembed(
-            d_vocab_out or d_vocab,
+        unembed_in_dim = (
             d_model
             + d_pos
-            + (n_vars_num * int(unembed_num))
-            + n_layers * ((layer_out_num * int(unembed_num)) + layer_out_cat),
+            + (base_num_dim * int(unembed_num))
+            + n_layers * ((layer_out_num * int(unembed_num)) + layer_out_cat)
+        )
+        self.unembed = Unembed(
+            d_vocab_out or d_vocab,
+            unembed_in_dim,
             mask=unembed_mask,
         )
 
