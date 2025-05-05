@@ -1142,14 +1142,14 @@ class TransformerProgramModel(nn.Module):
             x_cat = x_cat + self.mem_net(x_cat)
 
         x_num = self.num_embed(x)
-        if self.use_experts:
-            expert_feat = self.expert_layer(x_cat).mean(-1, keepdim=True)
-            x_num = torch.cat([x_num, expert_feat], dim=-1)
         if self.use_prefix:
             x_num = torch.cat([x_num, self.prefix_layer(x)], dim=-1)
         if chunk_cat is not None:
             zeros_num = torch.zeros(B, Bk, x_num.size(-1), device=x_num.device)
             x_num = torch.cat([zeros_num, x_num], 1)
+        if self.use_experts:
+            expert_feat = self.expert_layer(x_cat).mean(-1, keepdim=True)
+            x_num = torch.cat([x_num, expert_feat], dim=-1)
 
         if self.pos_embed is not None:
             x_cat = torch.cat([x_cat, self.pos_embed(x_cat)], dim=-1)
