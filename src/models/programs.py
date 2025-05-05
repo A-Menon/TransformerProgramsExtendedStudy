@@ -1108,8 +1108,8 @@ class TransformerProgramModel(nn.Module):
         if self.use_chunks:
             x_hashed, chunk_cat_ids, chunk_num = self.chunker(
                 x_hashed,
-                cat_embed_f=lambda idx: idx,
-                num_embed_f=lambda idx: idx
+                cat_embed_f=self.embed,
+                num_embed_f=self.num_embed,
             )
             
             chunk_cat = self.embed(chunk_cat_ids)
