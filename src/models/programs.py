@@ -1010,7 +1010,7 @@ class TransformerProgramModel(nn.Module):
         if self.use_prefix:
             self.prefix_layer = PrefixSumCounts(d_vocab)
         if self.use_chunks:
-            self.chunker = ChunkAggregator(block_size=8, d_vocab=d_vocab)
+            self.chunker = ChunkAggregator(block_size=8)
         self.pos_embed = OneHotPosEmbed(
             n_ctx,
             d_var,
