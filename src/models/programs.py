@@ -1157,10 +1157,9 @@ class TransformerProgramModel(nn.Module):
         if self.use_experts:
             expert_feat = self.expert_layer(x_cat)
             if expert_feat.size(1) != x_num.size(1):
-                if self.use_chunks:
-                    expert_feat = expert_feat.mean(-1, keepdim=True)
-                else:
-                    expert_feat = expert_feat.mean(-1, keepdim=True)
+                raise ValueError(f"Expert feature sequence length {expert_feat.size(1)} doesn't match x_num sequence length {x_num.size(1)}")
+            if expert_feat.size(-1) != 1:
+                expert_feat = expert_feat.mean(-1, keepdim=True)
             x_num = torch.cat([x_num, expert_feat], dim=-1)
 
         if self.pos_embed is not None:
