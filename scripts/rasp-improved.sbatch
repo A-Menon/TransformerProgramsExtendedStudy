@@ -24,7 +24,7 @@ IMPROV="${IMPROV_LIST[$IDX]}"
 # sanitize for filenames: commas → +
 SAFE_IMP=$(echo "$IMPROV" | tr ',' '+')
 
-LOGDIR="logs/${SAFE_IMP}"
+LOGDIR="logs-improved/${SAFE_IMP}"
 mkdir -p "$LOGDIR"
 
 echo "=== TASK ${SLURM_ARRAY_TASK_ID}: improvements='$IMPROV' ==="
