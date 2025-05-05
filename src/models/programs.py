@@ -735,23 +735,30 @@ class NumAttention(nn.Module):
             torch.einsum("ihd,bpd->biph", self.W_pred(self.W_Q()), x_cat)
         )
         v = self.hook_v(torch.einsum("ihd,bpd->biph", self.W_V(), x_num))
+        
+        B, I, P, H = k.shape
+        _, _, Q, _ = q.shape
+        
         attn_scores_pre = torch.einsum("biph,biqh->biqp", k, q)
         
-        seq_len = attn_scores_pre.size(-1)
-        causal_mask = torch.tril(
-            torch.ones(seq_len, seq_len, device=x_cat.device, dtype=torch.bool)
-        ).unsqueeze(0).unsqueeze(1)
+        causal_mask = torch.ones(Q, P, device=x_cat.device, dtype=torch.bool).triu(diagonal=1)
+        causal_mask = causal_mask.unsqueeze(0).unsqueeze(1)
         
-        attn_scores_masked = attn_scores_pre.masked_fill(~causal_mask, -1e30)
-        
+        attn_scores_masked = attn_scores_pre.masked_fill(causal_mask, -1e30)
         attn_scores_masked = self.hook_attn_pre(attn_scores_masked)
         
-        attn_matrix = self.hook_attn(
-            self.sample_fn(
-                attn_scores_masked,
-                dim=-1,
-            )
-        )
+        attn_matrix = self.hook_attn(self.sample_fn(attn_scores_masked, dim=-1))
+        
+        if attn_matrix.shape[-1] != v.shape[-2]:
+            P_v = v.shape[-2]
+            if attn_matrix.shape[-1] > P_v:
+                attn_matrix = attn_matrix[..., :P_v]
+            else:
+                padding = torch.zeros(
+                    B, I, Q, P_v - attn_matrix.shape[-1],
+                    device=attn_matrix.device
+                )
+                attn_matrix = torch.cat([attn_matrix, padding], dim=-1)
         
         z = self.hook_z(torch.einsum("biph,biqp->biqh", v, attn_matrix))
         z_flat = einops.rearrange(z, "b i q h -> b q (i h)")
