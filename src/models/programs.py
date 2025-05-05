@@ -217,9 +217,17 @@ class OneHotPosEmbed(nn.Module):
 
     def forward(self, x, **kwargs):
         W_pos = self.get_W()
-        return (
-            torch.zeros_like(x[:, :, : W_pos.shape[-1]]) + W_pos[: x.shape[-2]]
-        )
+        seq_len = x.shape[1]
+        
+        if seq_len > self.max_ctx:
+            pos_emb = W_pos.unsqueeze(0).repeat(x.size(0), 1, 1)
+            padding = torch.zeros(
+                x.size(0), seq_len - self.max_ctx, W_pos.shape[-1],
+                device=x.device
+            )
+            return torch.cat([pos_emb, padding], dim=1)
+        else:
+            return torch.zeros_like(x[:, :, :W_pos.shape[-1]]) + W_pos[:seq_len]
 
 
 class ConstrainedRead(nn.Module):
@@ -1155,38 +1163,19 @@ class TransformerProgramModel(nn.Module):
             x_cat = x_cat + self.mem_net(x_cat)
         
         if self.use_experts:
-            print(f"x_cat shape: {x_cat.shape}, x_num shape: {x_num.shape}")
-            
-            if self.use_chunks:
-                chunk_len = num_chunk_tokens
-                main_len = x_cat.size(1) - chunk_len
-                
-                if chunk_len > 0:
-                    chunk_expert = self.expert_layer(x_cat[:, :chunk_len])
-                main_expert = self.expert_layer(x_cat[:, chunk_len:])
-                if chunk_len > 0:
-                    expert_feat = torch.cat([chunk_expert, main_expert], dim=1)
-                else:
-                    expert_feat = main_expert
-            else:
-                expert_feat = self.expert_layer(x_cat)
-            
-            print(f"Expert feature shape: {expert_feat.shape}")
-            
+            expert_feat = self.expert_layer(x_cat)
+            if expert_feat.size(-1) != 1:
+                expert_feat = expert_feat.mean(-1, keepdim=True)
             if expert_feat.size(1) != x_num.size(1):
-                if expert_feat.size(-1) != 1:
-                    expert_feat = expert_feat.mean(-1, keepdim=True)
-                if expert_feat.size(1) > x_num.size(1):
-                    expert_feat = expert_feat[:, :x_num.size(1)]
-                elif expert_feat.size(1) < x_num.size(1):
-                    padding = torch.zeros(
-                        expert_feat.size(0), 
-                        x_num.size(1) - expert_feat.size(1), 
-                        expert_feat.size(2),
-                        device=expert_feat.device
-                    )
-                    expert_feat = torch.cat([expert_feat, padding], dim=1)
-            print(f"Final shapes - x_num: {x_num.shape}, expert_feat: {expert_feat.shape}")
+                fixed_expert = torch.zeros(
+                    expert_feat.size(0), 
+                    x_num.size(1),
+                    expert_feat.size(2),
+                    device=expert_feat.device
+                )
+                min_seq_len = min(expert_feat.size(1), x_num.size(1))
+                fixed_expert[:, :min_seq_len] = expert_feat[:, :min_seq_len]
+                expert_feat = fixed_expert
             x_num = torch.cat([x_num, expert_feat], dim=-1)
 
         if self.pos_embed is not None:
