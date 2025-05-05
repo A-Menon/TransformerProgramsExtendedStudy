@@ -1102,10 +1102,18 @@ class TransformerProgramModel(nn.Module):
         B, L = x.size()
         if mask is None:
             mask = torch.ones(B, L, L, device=x.device, dtype=torch.bool)
+            
+        x_hashed = self.hash_embed(x) if self.use_sketch else x
+
         if self.use_chunks:
-            x, chunk_cat, chunk_num = self.chunker(
-                x, cat_embed_f=self.embed, num_embed_f=self.num_embed
+            x_hashed, chunk_cat_ids, chunk_num = self.chunker(
+                x_hashed,
+                cat_embed_f=lambda idx: idx,
+                num_embed_f=lambda idx: idx
             )
+            
+            chunk_cat = self.embed(chunk_cat_ids)
+            
             Bk = chunk_cat.size(1)
             top = torch.ones(B, Bk, Bk + L, device=mask.device, dtype=torch.bool)
             bottom = torch.cat([
@@ -1113,46 +1121,47 @@ class TransformerProgramModel(nn.Module):
                 mask
             ], dim=2)
             mask = torch.cat([top, bottom], dim=1)
+        else:
+            chunk_cat = None
+            chunk_num = None
+
         contrast_cat = None
         if self.use_contrast:
             one_hot = F.one_hot(x, num_classes=self.contrast_layer.prototypes.size(1))
             contrast_cat = self.contrast_layer(one_hot.float())
-        x_cat = self.embed(self.hash_embed(x) if self.use_sketch else x)
+
+        x_cat = self.embed(x_hashed)
+        if chunk_cat is not None:
+            x_cat = torch.cat([chunk_cat, x_cat], dim=1)
         if contrast_cat is not None:
-            x_cat = torch.cat([contrast_cat, x_cat], -1)
+            x_cat = torch.cat([contrast_cat, x_cat], dim=-1)
         if self.use_mem:
             x_cat = x_cat + self.mem_net(x_cat)
+
         x_num = self.num_embed(x)
         if self.use_experts:
-            expert_feat = self.expert_layer(x_cat)
-            expert_feat = expert_feat.mean(-1, keepdim=True)
+            expert_feat = self.expert_layer(x_cat).mean(-1, keepdim=True)
             x_num = torch.cat([x_num, expert_feat], dim=-1)
         if self.use_prefix:
-            x_num = torch.cat([x_num, self.prefix_layer(x)], -1)
+            x_num = torch.cat([x_num, self.prefix_layer(x)], dim=-1)
+        if chunk_num is not None:
+            x_num = torch.cat([chunk_num, x_num], dim=1)
+
         if self.pos_embed is not None:
             x_cat = torch.cat([x_cat, self.pos_embed(x_cat)], dim=-1)
+
         for block in self.blocks:
             x_cat, x_num = block(x_cat, x_num, mask=mask)
-        if self.unembed_num:
-            x = torch.cat([x_cat, x_num], -1)
-        else:
-            x = x_cat
 
-        x = self.hook_final(x)
+        x_out = torch.cat([x_cat, x_num], dim=-1) if self.unembed_num else x_cat
+        x_out = self.hook_final(x_out)
 
         if self.pool_outputs:
-            x = torch.cat(
-                [
-                    x.masked_fill(~mask[:, 0].unsqueeze(-1), 0).mean(
-                        1, keepdims=True
-                    ),
-                    x[:, 1:],
-                ],
-                1,
-            )
-            x = self.hook_pool(x)
+            pooled = x_out.masked_fill(~mask[:, 0].unsqueeze(-1), 0).mean(1, keepdims=True)
+            x_out = torch.cat([pooled, x_out[:, 1:]], dim=1)
+            x_out = self.hook_pool(x_out)
 
-        return self.unembed(x)
+        return self.unembed(x_out)
 
     def set_use_cache(self, use_cache):
         self.use_cache = use_cache
