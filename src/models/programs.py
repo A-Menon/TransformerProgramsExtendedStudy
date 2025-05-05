@@ -1025,15 +1025,18 @@ class TransformerProgramModel(nn.Module):
         self.n_heads_cat, self.n_heads_num = n_heads_cat, n_heads_num
         extra_cat = 0
         extra_num = 0
-        if self.use_prefix:
-            extra_num += 1
+        if self.use_chunks:
+            extra_cat += d_var
+            extra_num += d_vocab
+        if self.use_contrast:
+            self.contrast_layer = ContrastiveTokenRepresentations(d_vocab)
+            extra_cat += self.contrast_layer.n_buckets
         if self.use_experts:
             expert_in = d_model + extra_cat
             self.expert_layer = SparseExpertCountingNetwork(expert_in, n_experts=4)
             extra_num += 1
-        if self.use_contrast:
-            self.contrast_layer = ContrastiveTokenRepresentations(d_vocab)
-            extra_cat += self.contrast_layer.n_buckets
+        if self.use_prefix:
+            extra_num += 1
         if self.use_mem:
             self.mem_net = PositionalNgramMemoryNetwork(d_model + extra_cat)
         layer_out_cat = d_var * n_heads_cat + (
