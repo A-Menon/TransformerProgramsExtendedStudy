@@ -1,0 +1,114 @@
+CUDA_VISIBLE_DEVICES: 0
+Torch sees CUDA: True
+
+=== Running double_hist ===
+I 2025-05-05T06:03:44 __main__:662: args: {'output_dir': 'output-improved/rasp-improved-prefix-816/double_hist/k8_len16_L3_H4_M2/s0', 'dataset': 'double_hist', 'vocab_size': 8, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 2, 'n_heads_num': 2, 'd_mlp': 64, 'n_cat_mlps': 1, 'n_num_mlps': 1, 'mlp_vars_in': 2, 'n_layers': 3, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': False, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'mix', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'use_prefix_counts': True, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-05T06:03:45 __main__:630: vocab size: 8
+I 2025-05-05T06:03:45 __main__:631: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-05T06:03:45 __main__:632: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-05T06:03:45 __main__:633: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-05T06:03:45 __main__:636: 16200/16200 unique training inputs
+I 2025-05-05T06:03:45 __main__:637: 2000/2000 unique test inputs not in train
+I 2025-05-05T06:17:59 __main__:459: train: loss=0.5528481602668762, acc=0.7354881854658939, metrics={}
+I 2025-05-05T06:17:59 __main__:459: val: loss=0.5600873231887817, acc=0.7372217174011813, metrics={}
+I 2025-05-05T06:17:59 __main__:459: test: loss=0.555500864982605, acc=0.7342132505175983, metrics={}
+I 2025-05-05T06:17:59 __main__:476: saving model to output-improved/rasp-improved-prefix-816/double_hist/k8_len16_L3_H4_M2/s0/model.pt
+I 2025-05-05T06:17:59 __main__:480: saving code to output-improved/rasp-improved-prefix-816/double_hist/k8_len16_L3_H4_M2/s0
+E 2025-05-05T06:17:59 __main__:498: error saving code: boolean index did not match indexed array along dimension 0; dimension is 232 but corresponding boolean dimension is 231
+I 2025-05-05T06:17:59 __main__:656: writing results to output-improved/rasp-improved-prefix-816/double_hist/k8_len16_L3_H4_M2/s0/results.csv
+
+=== Running hist ===
+I 2025-05-05T06:18:02 __main__:662: args: {'output_dir': 'output-improved/rasp-improved-prefix-816/hist/k8_len16_L1_H4_M2/s0', 'dataset': 'hist', 'vocab_size': 8, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 0, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 1, 'n_num_mlps': 1, 'mlp_vars_in': 2, 'n_layers': 1, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'num', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'use_prefix_counts': True, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-05T06:18:03 __main__:630: vocab size: 8
+I 2025-05-05T06:18:03 __main__:631: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-05T06:18:03 __main__:632: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-05T06:18:03 __main__:633: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-05T06:18:03 __main__:636: 16200/16200 unique training inputs
+I 2025-05-05T06:18:03 __main__:637: 2000/2000 unique test inputs not in train
+I 2025-05-05T06:21:59 __main__:459: train: loss=0.0016577428905293345, acc=0.9994522641869945, metrics={}
+I 2025-05-05T06:21:59 __main__:459: val: loss=0.0019449763931334019, acc=0.9989209450249886, metrics={}
+I 2025-05-05T06:21:59 __main__:459: test: loss=0.0014839740470051765, acc=0.9998447204968944, metrics={}
+I 2025-05-05T06:21:59 __main__:476: saving model to output-improved/rasp-improved-prefix-816/hist/k8_len16_L1_H4_M2/s0/model.pt
+I 2025-05-05T06:21:59 __main__:480: saving code to output-improved/rasp-improved-prefix-816/hist/k8_len16_L1_H4_M2/s0
+E 2025-05-05T06:21:59 __main__:498: error saving code: boolean index did not match indexed array along dimension 0; dimension is 70 but corresponding boolean dimension is 69
+I 2025-05-05T06:21:59 __main__:656: writing results to output-improved/rasp-improved-prefix-816/hist/k8_len16_L1_H4_M2/s0/results.csv
+
+=== Running reverse ===
+I 2025-05-05T06:22:02 __main__:662: args: {'output_dir': 'output-improved/rasp-improved-prefix-816/reverse/k8_len16_L3_H8_M2/s0', 'dataset': 'reverse', 'vocab_size': 8, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 4, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 1, 'n_num_mlps': 1, 'mlp_vars_in': 2, 'n_layers': 3, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'use_prefix_counts': True, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-05T06:22:03 __main__:630: vocab size: 8
+I 2025-05-05T06:22:03 __main__:631: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-05T06:22:03 __main__:632: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-05T06:22:03 __main__:633: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-05T06:22:03 __main__:636: 16200/16200 unique training inputs
+I 2025-05-05T06:22:03 __main__:637: 2000/2000 unique test inputs not in train
+I 2025-05-05T06:35:58 __main__:459: train: loss=1.006259799003601, acc=0.599926580004851, metrics={}
+I 2025-05-05T06:35:58 __main__:459: val: loss=1.0197620391845703, acc=0.5929017570486252, metrics={}
+I 2025-05-05T06:35:58 __main__:459: test: loss=1.0128562450408936, acc=0.5990385134770162, metrics={}
+I 2025-05-05T06:35:58 __main__:476: saving model to output-improved/rasp-improved-prefix-816/reverse/k8_len16_L3_H8_M2/s0/model.pt
+I 2025-05-05T06:35:58 __main__:480: saving code to output-improved/rasp-improved-prefix-816/reverse/k8_len16_L3_H8_M2/s0
+E 2025-05-05T06:35:58 __main__:498: error saving code: boolean index did not match indexed array along dimension 0; dimension is 334 but corresponding boolean dimension is 333
+I 2025-05-05T06:35:58 __main__:656: writing results to output-improved/rasp-improved-prefix-816/reverse/k8_len16_L3_H8_M2/s0/results.csv
+
+=== Running sort ===
+I 2025-05-05T06:36:01 __main__:662: args: {'output_dir': 'output-improved/rasp-improved-prefix-816/sort/k8_len16_L3_H8_M4/s0', 'dataset': 'sort', 'vocab_size': 8, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 4, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 2, 'n_num_mlps': 2, 'mlp_vars_in': 2, 'n_layers': 3, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'use_prefix_counts': True, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-05T06:36:02 __main__:630: vocab size: 8
+I 2025-05-05T06:36:02 __main__:631: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-05T06:36:02 __main__:632: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-05T06:36:02 __main__:633: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-05T06:36:02 __main__:636: 16200/16200 unique training inputs
+I 2025-05-05T06:36:02 __main__:637: 2000/2000 unique test inputs not in train
+I 2025-05-05T06:53:46 __main__:459: train: loss=0.13910792768001556, acc=0.9376716684038362, metrics={}
+I 2025-05-05T06:53:46 __main__:459: val: loss=0.14084389805793762, acc=0.9360807892125387, metrics={}
+I 2025-05-05T06:53:46 __main__:459: test: loss=0.1391012817621231, acc=0.9371792794252687, metrics={}
+I 2025-05-05T06:53:46 __main__:476: saving model to output-improved/rasp-improved-prefix-816/sort/k8_len16_L3_H8_M4/s0/model.pt
+I 2025-05-05T06:53:46 __main__:480: saving code to output-improved/rasp-improved-prefix-816/sort/k8_len16_L3_H8_M4/s0
+E 2025-05-05T06:53:46 __main__:498: error saving code: boolean index did not match indexed array along dimension 0; dimension is 430 but corresponding boolean dimension is 429
+I 2025-05-05T06:53:46 __main__:656: writing results to output-improved/rasp-improved-prefix-816/sort/k8_len16_L3_H8_M4/s0/results.csv
+
+=== Running most_freq ===
+I 2025-05-05T06:53:49 __main__:662: args: {'output_dir': 'output-improved/rasp-improved-prefix-816/most_freq/k8_len16_L4_H8_M4/s0', 'dataset': 'most_freq', 'vocab_size': 8, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 4, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 2, 'n_num_mlps': 2, 'mlp_vars_in': 2, 'n_layers': 4, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': False, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'use_prefix_counts': True, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-05T06:53:51 __main__:630: vocab size: 8
+I 2025-05-05T06:53:51 __main__:631: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-05T06:53:51 __main__:632: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-05T06:53:51 __main__:633: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-05T06:53:51 __main__:636: 16200/16200 unique training inputs
+I 2025-05-05T06:53:51 __main__:637: 2000/2000 unique test inputs not in train
+I 2025-05-05T07:16:43 __main__:459: train: loss=0.5940096974372864, acc=0.7516591299917202, metrics={}
+I 2025-05-05T07:16:43 __main__:459: val: loss=0.6028871536254883, acc=0.7464788732394366, metrics={}
+I 2025-05-05T07:16:43 __main__:459: test: loss=0.5983049273490906, acc=0.7483954451345756, metrics={}
+I 2025-05-05T07:16:43 __main__:476: saving model to output-improved/rasp-improved-prefix-816/most_freq/k8_len16_L4_H8_M4/s0/model.pt
+I 2025-05-05T07:16:43 __main__:480: saving code to output-improved/rasp-improved-prefix-816/most_freq/k8_len16_L4_H8_M4/s0
+E 2025-05-05T07:16:43 __main__:498: error saving code: boolean index did not match indexed array along dimension 0; dimension is 562 but corresponding boolean dimension is 561
+I 2025-05-05T07:16:43 __main__:656: writing results to output-improved/rasp-improved-prefix-816/most_freq/k8_len16_L4_H8_M4/s0/results.csv
+
+=== Running dyck1 ===
+I 2025-05-05T07:16:46 __main__:662: args: {'output_dir': 'output-improved/rasp-improved-prefix-816/dyck1/k8_len16_L4_H8_M4/s0', 'dataset': 'dyck1', 'vocab_size': 1, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 4, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 2, 'n_num_mlps': 2, 'mlp_vars_in': 2, 'n_layers': 4, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': True, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'use_prefix_counts': True, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-05T07:16:50 __main__:630: vocab size: 4
+I 2025-05-05T07:16:50 __main__:631: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-05T07:16:50 __main__:632: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-05T07:16:50 __main__:633: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-05T07:16:50 __main__:636: 16200/16200 unique training inputs
+I 2025-05-05T07:16:50 __main__:637: 2000/2000 unique test inputs not in train
+I 2025-05-05T07:39:54 __main__:459: train: loss=0.002992531517520547, acc=0.9990576131687243, metrics={}
+I 2025-05-05T07:39:54 __main__:459: val: loss=0.004465836565941572, acc=0.9986666666666667, metrics={}
+I 2025-05-05T07:39:54 __main__:459: test: loss=0.0022124743554741144, acc=0.9993, metrics={}
+I 2025-05-05T07:39:54 __main__:476: saving model to output-improved/rasp-improved-prefix-816/dyck1/k8_len16_L4_H8_M4/s0/model.pt
+I 2025-05-05T07:39:54 __main__:480: saving code to output-improved/rasp-improved-prefix-816/dyck1/k8_len16_L4_H8_M4/s0
+E 2025-05-05T07:39:54 __main__:498: error saving code: boolean index did not match indexed array along dimension 0; dimension is 562 but corresponding boolean dimension is 561
+I 2025-05-05T07:39:54 __main__:656: writing results to output-improved/rasp-improved-prefix-816/dyck1/k8_len16_L4_H8_M4/s0/results.csv
+
+=== Running dyck2 ===
+I 2025-05-05T07:39:57 __main__:662: args: {'output_dir': 'output-improved/rasp-improved-prefix-816/dyck2/k8_len16_L4_H8_M4/s0', 'dataset': 'dyck2', 'vocab_size': 2, 'dataset_size': 20000, 'min_length': 1, 'max_length': 16, 'seed': 0, 'do_lower': 0, 'unique': 1, 'replace_numbers': 0, 'n_vars_cat': 1, 'n_vars_num': 1, 'd_var': 16, 'n_heads_cat': 4, 'n_heads_num': 4, 'd_mlp': 64, 'n_cat_mlps': 2, 'n_num_mlps': 2, 'mlp_vars_in': 2, 'n_layers': 4, 'sample_fn': 'gumbel_soft', 'one_hot_embed': True, 'count_only': True, 'selector_width': 0, 'attention_type': 'both', 'rel_pos_bias': 'fixed', 'mlp_type': 'cat', 'autoregressive': True, 'glove_embeddings': 'data/glove.840B.300d.txt', 'do_glove': 0, 'unembed_mask': 1, 'pool_outputs': 0, 'use_prefix_counts': True, 'standard': False, 'd_model': 64, 'd_head': None, 'n_heads': 2, 'dropout': 0.0, 'lr': 0.02, 'max_grad_norm': 1.0, 'gumbel_samples': 4, 'n_epochs': 250, 'batch_size': 512, 'tau_init': 3.0, 'tau_end': 0.1, 'tau_schedule': 'geomspace', 'loss_agg': 'per_token', 'save': True, 'save_code': True, 'device': 'cuda'}
+I 2025-05-05T07:39:58 __main__:630: vocab size: 6
+I 2025-05-05T07:39:58 __main__:631: X_train: (16200, 16), Y_train, (16200, 16)
+I 2025-05-05T07:39:58 __main__:632: X_val: (1800, 16), Y_val, (1800, 16)
+I 2025-05-05T07:39:58 __main__:633: X_test: (2000, 16), Y_test, (2000, 16)
+I 2025-05-05T07:39:58 __main__:636: 16200/16200 unique training inputs
+I 2025-05-05T07:39:58 __main__:637: 2000/2000 unique test inputs not in train
+I 2025-05-05T08:02:57 __main__:459: train: loss=0.02564743533730507, acc=0.9930329218106996, metrics={}
+I 2025-05-05T08:02:58 __main__:459: val: loss=0.030645636841654778, acc=0.9924444444444445, metrics={}
+I 2025-05-05T08:02:58 __main__:459: test: loss=0.029175225645303726, acc=0.9930666666666667, metrics={}
+I 2025-05-05T08:02:58 __main__:476: saving model to output-improved/rasp-improved-prefix-816/dyck2/k8_len16_L4_H8_M4/s0/model.pt
+I 2025-05-05T08:02:58 __main__:480: saving code to output-improved/rasp-improved-prefix-816/dyck2/k8_len16_L4_H8_M4/s0
+E 2025-05-05T08:02:58 __main__:498: error saving code: boolean index did not match indexed array along dimension 0; dimension is 562 but corresponding boolean dimension is 561
+I 2025-05-05T08:02:58 __main__:656: writing results to output-improved/rasp-improved-prefix-816/dyck2/k8_len16_L4_H8_M4/s0/results.csv
