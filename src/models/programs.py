@@ -640,40 +640,39 @@ class CatAttention(nn.Module):
         )
         v = self.hook_v(torch.einsum("ihd,bpd->biph", self.W_V(), x))
         attn_scores_pre = torch.einsum("biph,biqh->biqp", k, q)
-
-        if attn_scores_pre.size(-1) != mask.size(-1):
-            expanded_mask = torch.ones(
-                attn_scores_pre.size(0),
-                attn_scores_pre.size(2),
-                attn_scores_pre.size(3), 
-                device=mask.device,
-                dtype=torch.bool
-            )
-            min_size = min(expanded_mask.size(-1), mask.size(-1))
-            expanded_mask[:, :min_size, :min_size] = mask[:, :min_size, :min_size]
-            scores = attn_scores_pre.masked_fill((~expanded_mask).unsqueeze(1), 0).sum(-1)
-        else:
-            scores = attn_scores_pre.masked_fill((~mask).unsqueeze(1), 0).sum(-1)
-        max_score = scores / (scores + 1e-10)
-        attn_scores_pre[:, :, :, 0] += F.relu(1.0 - max_score)
-
-        attn_scores_pre = self.hook_attn_pre(attn_scores_pre)
-        attn_scores_pos = self.hook_attn_pos(self.rel_pos_bias(attn_scores_pre))
-
-        attn_scores_masked = attn_scores_pos.masked_fill(
-            (~mask).unsqueeze(1), -1e30
+        
+        seq_len = attn_scores_pre.size(-1)
+        causal_mask = torch.triu(
+            torch.ones(seq_len, seq_len, device=x.device, dtype=torch.bool),
+            diagonal=1
         )
+        
+        attn_scores_pre = attn_scores_pre.masked_fill(
+            causal_mask.unsqueeze(0).unsqueeze(1), -1e30
+        )
+        
+        attn_scores_pre = self.hook_attn_pre(attn_scores_pre)
+        
+        bias_shape = (self.n_heads, attn_scores_pre.size(-2), attn_scores_pre.size(-1))
+        if self.one_hot_input:
+            attn_scores_pos = self.hook_attn_pos(
+                (attn_scores_pre + 1e-20).log()
+            )
+        else:
+            attn_scores_pos = self.hook_attn_pos(attn_scores_pre)
+        
         attn_matrix = self.hook_attn(
             self.sample_fn(
-                attn_scores_masked / self.attention_temp,
+                attn_scores_pos / self.attention_temp,
                 tau=self.temp,
                 dim=-1,
             )
         )
+        
         z = self.hook_z(torch.einsum("biph,biqp->biqh", v, attn_matrix))
         z_flat = einops.rearrange(z, "b i q h -> b q (i h)")
-        out = z_flat
-        return out
+        
+        return z_flat
 
 
 class NumAttention(nn.Module):
