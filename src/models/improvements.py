@@ -44,7 +44,11 @@ class ChunkAggregator(nn.Module):
         self.block = block_size
 
     def forward(self, tokens, cat_embed_f, num_embed_f):
-        B, L = tokens.shape
+        if tokens.ndim == 3:
+            B, L, H = tokens.shape
+            tokens = tokens.view(B, L*H)
+        else:
+            B, L = tokens.shape
         pad = (-L) % self.block
         if pad:
             tokens = torch.cat([tokens,
