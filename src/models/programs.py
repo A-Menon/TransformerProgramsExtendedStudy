@@ -9,6 +9,7 @@ from torch import nn
 from torch.nn import functional as F
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from improvements import PrefixSumCounts, HashSketchEmbed, ChunkAggregator, SparseExpertCountingNetwork, ContrastiveTokenRepresentations, PositionalNgramMemoryNetwork
 
 from utils import logging
 
@@ -952,9 +953,18 @@ class TransformerProgramModel(nn.Module):
         one_hot_embed=False,
         count_only=False,
         selector_width=False,
+        improvements=None,
         **kwargs,
     ):
         super().__init__()
+        improvements = improvements or {}
+        self.use_prefix = "prefixsum" in improvements
+        self.use_sketch = "sketch" in improvements
+        self.use_chunks = "chunks" in improvements
+        self.use_experts = "experts" in improvements
+        self.use_contrast = "contrast" in improvements
+        self.use_mem = "memory" in improvements
+
         self.cache = {}
         self.use_cache = use_cache
         self.d_pos = d_pos or d_var
@@ -972,20 +982,35 @@ class TransformerProgramModel(nn.Module):
         self.d_model = d_model = d_var * n_vars_cat
         self.n_layers = n_layers
 
-        self.embed = CatEmbed(
-            d_vocab,
-            n_vars=n_vars_cat,
-            d_var=d_var,
-            temp=temp,
-            init_emb=init_emb,
-            sample_fn=sample_fn,
-            one_hot_embed=one_hot_embed,
-        )
+        if self.use_sketch:
+            self.hash_embed = HashSketchEmbed(d_vocab)
+            self.embed = CatEmbed(
+                self.hash_embed.kp,
+                n_vars=n_vars_cat,
+                d_var=d_var,
+                temp=temp,
+                sample_fn=sample_fn,
+                one_hot_embed=one_hot_embed,
+            )
+        else:
+            self.embed = CatEmbed(
+                d_vocab,
+                n_vars=n_vars_cat,
+                d_var=d_var,
+                temp=temp,
+                init_emb=init_emb,
+                sample_fn=sample_fn,
+                one_hot_embed=one_hot_embed,
+            )
         self.num_embed = NumEmbed(
             d_vocab,
             n_vars=n_vars_num,
             count_only=count_only,
         )
+        if self.use_prefix:
+            self.prefix_layer = PrefixSumCounts(d_vocab)
+        if self.use_chunks:
+            self.chunker = ChunkAggregator(block_size=8, d_vocab=d_vocab)
         self.pos_embed = OneHotPosEmbed(
             n_ctx,
             d_var,
@@ -999,16 +1024,33 @@ class TransformerProgramModel(nn.Module):
             n_heads_num = n_heads
 
         self.n_heads_cat, self.n_heads_num = n_heads_cat, n_heads_num
-
+        extra_cat = 0
+        extra_num = 0
+        if self.use_chunks:
+            extra_cat += d_var
+            extra_num += d_vocab
+        if self.use_prefix:
+            extra_num += 1
+        if self.use_experts:
+            expert_in = d_model + extra_cat
+            self.expert_layer = SparseExpertCountingNetwork(expert_in, n_experts=4)
+            extra_num += 1
+        if self.use_contrast:
+            self.contrast_layer = ContrastiveTokenRepresentations(d_vocab)
+            extra_cat += self.contrast_layer.n_buckets
+        if self.use_mem:
+            self.mem_net = PositionalNgramMemoryNetwork(d_var*n_vars_cat)
         layer_out_cat = d_var * n_heads_cat + (
             d_head * (n_cat_mlps + n_num_mlps)
         )
         layer_out_num = n_heads_num
+        total_width = (d_model + d_pos + extra_cat + n_layers * layer_out_cat + 
+                       (n_vars_num * int(unembed_num)) + extra_num + n_layers * (layer_out_num * int(unembed_num)))
         self.blocks = nn.ModuleList(
             [
                 TransformerProgramBlock(
-                    d_in_cat=d_model + d_pos + i * layer_out_cat,
-                    d_in_num=n_vars_num + i * layer_out_num,
+                    d_in_cat=d_model + d_pos + i * layer_out_cat + extra_cat,
+                    d_in_num=n_vars_num + i * layer_out_num + extra_num,
                     d_mlp=d_mlp,
                     d_head=d_head,
                     n_heads_num=n_heads_num,
@@ -1034,10 +1076,7 @@ class TransformerProgramModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.unembed = Unembed(
             d_vocab_out or d_vocab,
-            d_model
-            + d_pos
-            + (n_vars_num * int(unembed_num))
-            + n_layers * ((layer_out_num * int(unembed_num)) + layer_out_cat),
+            total_width,
             mask=unembed_mask,
         )
 
@@ -1060,10 +1099,38 @@ class TransformerProgramModel(nn.Module):
                 module.set_temp(temp, sample_fn=sample_fn)
 
     def forward(self, x, mask=None, **kwargs):
-        x_cat = self.embed(x)
-        if self.pos_embed is not None:
-            x_cat = torch.cat([x_cat, self.pos_embed(x_cat)], -1)
+        B, L = x.size()
+        if mask is None:
+            mask = torch.ones(B, L, L, device=x.device, dtype=torch.bool)
+        if self.use_chunks:
+            x, chunk_cat, chunk_num = self.chunker(
+                x, cat_embed_f=self.embed, num_embed_f=self.num_embed
+            )
+            Bk = chunk_cat.size(1)
+            top = torch.ones(B, Bk, Bk + L, device=mask.device, dtype=torch.bool)
+            bottom = torch.cat([
+                torch.ones(B, L, Bk, device=mask.device, dtype=torch.bool),
+                mask
+            ], dim=2)
+            mask = torch.cat([top, bottom], dim=1)
+        contrast_cat = None
+        if self.use_contrast:
+            one_hot = F.one_hot(x, num_classes=self.contrast_layer.prototypes.size(1))
+            contrast_cat = self.contrast_layer(one_hot.float())
+        x_cat = self.embed(self.hash_embed(x) if self.use_sketch else x)
+        if contrast_cat is not None:
+            x_cat = torch.cat([contrast_cat, x_cat], -1)
+        if self.use_mem:
+            x_cat = x_cat + self.mem_net(x_cat)
         x_num = self.num_embed(x)
+        if self.use_experts:
+            expert_feat = self.expert_layer(x_cat)
+            expert_feat = expert_feat.mean(-1, keepdim=True)
+            x_num = torch.cat([x_num, expert_feat], dim=-1)
+        if self.use_prefix:
+            x_num = torch.cat([x_num, self.prefix_layer(x)], -1)
+        if self.pos_embed is not None:
+            x_cat = torch.cat([x_cat, self.pos_embed(x_cat)], dim=-1)
         for block in self.blocks:
             x_cat, x_num = block(x_cat, x_num, mask=mask)
         if self.unembed_num:

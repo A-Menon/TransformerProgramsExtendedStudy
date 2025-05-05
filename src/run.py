@@ -68,6 +68,14 @@ def parse_args():
     parser.add_argument("--mlp_type", type=str, default="cat")
     parser.add_argument("--autoregressive", action="store_true")
 
+    # ----- New Improvement Toggles -----
+    parser.add_argument(
+        "--improvements",
+        type=str,
+        default="",
+        help="comma-separated: prefixsum, sketch, chunks",
+    )
+
     parser.add_argument(
         "--glove_embeddings", type=str, default="data/glove.840B.300d.txt"
     )
@@ -118,6 +126,8 @@ def parse_args():
 
     return args
 
+def get_improvement_set(args):
+    return {s.strip().lower() for s in args.improvements.split(",") if s}
 
 def set_seed(seed):
     random.seed(seed)
@@ -361,6 +371,7 @@ def run_program(
     Y_test=None,
     X_val=None,
     Y_val=None,
+    improvements=None
 ):
     if args.d_var is None:
         d = max(len(idx_w), X_train.shape[-1])
@@ -401,6 +412,7 @@ def run_program(
         one_hot_embed=args.one_hot_embed,
         count_only=args.count_only,
         selector_width=args.selector_width,
+        improvements=improvements
     ).to(torch.device(args.device))
 
     opt = Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
@@ -629,9 +641,11 @@ def run(args):
     logger.info(f"{len(a)}/{len(train)} unique training inputs")
     logger.info(f"{len(b - a)}/{len(test)} unique test inputs not in train")
 
+    improvements = get_improvement_set(args)
     f = run_standard if args.standard else run_program
     results = f(
         args,
+        improvements=improvements,
         train=train,
         test=test,
         idx_w=idx_w,
