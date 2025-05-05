@@ -1112,7 +1112,7 @@ class TransformerProgramModel(nn.Module):
                 num_embed_f=self.num_embed,
             )
             
-            chunk_cat = self.embed(chunk_cat_ids)
+            chunk_cat = chunk_cat_ids
             
             Bk = chunk_cat.size(1)
             top = torch.ones(B, Bk, Bk + L, device=mask.device, dtype=torch.bool)
