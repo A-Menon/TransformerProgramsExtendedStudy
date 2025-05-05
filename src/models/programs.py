@@ -435,10 +435,27 @@ class ClippedRelPosBias(nn.Module):
 
     def forward(self, scores):
         nq, nk = scores.shape[-2:]
-        bias = self.get_bias(nq=nq, nk=nk)
-        if self.one_hot_input:
-            return (scores + 1e-20).log() + bias.unsqueeze(0)
-        return scores + bias.unsqueeze(0)
+        if nq > self.max_ctx or nk > self.max_ctx:
+            extended_bias = torch.zeros(
+                self.bias.size(0),
+                nq, nk,
+                device=self.bias.device
+            )
+            
+            orig_nq = min(nq, self.max_ctx)
+            orig_nk = min(nk, self.max_ctx)
+            orig_bias = self.get_bias(nq=orig_nq, nk=orig_nk)
+            
+            extended_bias[:, :orig_nq, :orig_nk] = orig_bias
+            
+            if self.one_hot_input:
+                return (scores + 1e-20).log() + extended_bias.unsqueeze(0)
+            return scores + extended_bias.unsqueeze(0)
+        else:
+            bias = self.get_bias(nq=nq, nk=nk)
+            if self.one_hot_input:
+                return (scores + 1e-20).log() + bias.unsqueeze(0)
+            return scores + bias.unsqueeze(0)
 
 
 class FixedRelPosBias(nn.Module):
@@ -474,10 +491,27 @@ class FixedRelPosBias(nn.Module):
 
     def forward(self, scores):
         nq, nk = scores.shape[-2:]
-        bias = self.get_bias(nq=nq, nk=nk)
-        if self.one_hot_input:
-            return (scores + 1e-20).log() + bias.unsqueeze(0)
-        return scores + bias.unsqueeze(0)
+        if nq > self.max_ctx or nk > self.max_ctx:
+            extended_bias = torch.zeros(
+                self.bias.size(0),
+                nq, nk,
+                device=self.bias.device
+            )
+            
+            orig_nq = min(nq, self.max_ctx)
+            orig_nk = min(nk, self.max_ctx)
+            orig_bias = self.get_bias(nq=orig_nq, nk=orig_nk)
+            
+            extended_bias[:, :orig_nq, :orig_nk] = orig_bias
+            
+            if self.one_hot_input:
+                return (scores + 1e-20).log() + extended_bias.unsqueeze(0)
+            return scores + extended_bias.unsqueeze(0)
+        else:
+            bias = self.get_bias(nq=nq, nk=nk)
+            if self.one_hot_input:
+                return (scores + 1e-20).log() + bias.unsqueeze(0)
+            return scores + bias.unsqueeze(0)
 
 
 class NoRelPosBias(nn.Module):
@@ -499,10 +533,27 @@ class NoRelPosBias(nn.Module):
 
     def forward(self, scores):
         nq, nk = scores.shape[-2:]
-        bias = self.get_bias(nq=nq, nk=nk)
-        if self.one_hot_input:
-            return (scores * bias.unsqueeze(0) + 1e-10).log()
-        return scores + bias.log().unsqueeze(0)
+        if nq > self.max_ctx or nk > self.max_ctx:
+            extended_bias = torch.zeros(
+                self.bias.size(0),
+                nq, nk,
+                device=self.bias.device
+            )
+            
+            orig_nq = min(nq, self.max_ctx)
+            orig_nk = min(nk, self.max_ctx)
+            orig_bias = self.get_bias(nq=orig_nq, nk=orig_nk)
+            
+            extended_bias[:, :orig_nq, :orig_nk] = orig_bias
+            
+            if self.one_hot_input:
+                return (scores + 1e-20).log() + extended_bias.unsqueeze(0)
+            return scores + extended_bias.unsqueeze(0)
+        else:
+            bias = self.get_bias(nq=nq, nk=nk)
+            if self.one_hot_input:
+                return (scores + 1e-20).log() + bias.unsqueeze(0)
+            return scores + bias.unsqueeze(0)
 
 
 class CatAttention(nn.Module):
