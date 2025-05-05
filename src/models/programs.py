@@ -1002,6 +1002,17 @@ class TransformerProgramBlock(nn.Module):
         
         if self.n_num_mlps:
             num_mlp_out = self.hook_num_mlp_out(self.num_mlp(x_num))
+            if num_mlp_out.size(1) != x_cat.size(1):
+                fixed_mlp_out = torch.zeros(
+                    num_mlp_out.size(0),
+                    x_cat.size(1),
+                    num_mlp_out.size(-1),
+                    device=num_mlp_out.device
+                )
+                min_seq_len = min(num_mlp_out.size(1), x_cat.size(1))
+                fixed_mlp_out[:, :min_seq_len] = num_mlp_out[:, :min_seq_len]
+                num_mlp_out = fixed_mlp_out
+            
             x_cat = torch.cat([x_cat, drop(num_mlp_out)], -1)
         
         x_cat = self.hook_resid_post_cat(x_cat)
