@@ -1101,6 +1101,9 @@ class TransformerProgramModel(nn.Module):
             
         x_hashed = self.hash_embed(x) if self.use_sketch else x
 
+        original_seq_length = L
+        num_chunk_tokens = 0
+
         if self.use_chunks:
             x_hashed, chunk_cat_ids, _ = self.chunker(
                 x_hashed,
@@ -1109,6 +1112,7 @@ class TransformerProgramModel(nn.Module):
             )
 
             chunk_cat = self.embed(chunk_cat_ids)
+            num_chunk_tokens = chunk_cat.size(1)
 
             Bk = chunk_cat.size(1)
             top = torch.ones(B, Bk, Bk + L, device=mask.device, dtype=torch.bool)
@@ -1138,8 +1142,6 @@ class TransformerProgramModel(nn.Module):
             x_cat = torch.cat([chunk_cat, x_cat], dim=1)
         if contrast_cat is not None:
             x_cat = torch.cat([contrast_cat, x_cat], dim=-1)
-        if self.use_mem:
-            x_cat = x_cat + self.mem_net(x_cat)
 
         x_num = self.num_embed(x)
         if self.use_prefix:
@@ -1147,8 +1149,17 @@ class TransformerProgramModel(nn.Module):
         if chunk_cat is not None:
             zeros_num = torch.zeros(B, Bk, x_num.size(-1), device=x_num.device)
             x_num = torch.cat([zeros_num, x_num], 1)
+
+        if self.use_mem:
+            x_cat = x_cat + self.mem_net(x_cat)
+        
         if self.use_experts:
-            expert_feat = self.expert_layer(x_cat).mean(-1, keepdim=True)
+            expert_feat = self.expert_layer(x_cat)
+            if expert_feat.size(1) != x_num.size(1):
+                if self.use_chunks:
+                    expert_feat = expert_feat.mean(-1, keepdim=True)
+                else:
+                    expert_feat = expert_feat.mean(-1, keepdim=True)
             x_num = torch.cat([x_num, expert_feat], dim=-1)
 
         if self.pos_embed is not None:

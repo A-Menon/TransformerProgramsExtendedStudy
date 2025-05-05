@@ -64,7 +64,7 @@ class ChunkAggregator(nn.Module):
         vocab = num_embed_f.get_W().size(0)
         one_hot = F.one_hot(blocks.long(), num_classes=vocab).float()  
         hist = one_hot.sum(2).sum(3)
-        num_hist = hist.unsqueeze(2).repeat(1, 1, H, 1).view(B, -1, vocab)
+        num_hist = hist.unsqueeze(2).repeat(1, 1, 1, 1).view(B, n_blocks, vocab)
 
         new_tokens = torch.cat([cat_ids, tokens.reshape(B, -1)], 1)
 
@@ -108,11 +108,14 @@ class SparseExpertCountingNetwork(nn.Module):
     def forward(self, x, **kwargs):
         logits = self.router(x)
         routes = F.gumbel_softmax(logits, hard=True, dim=-1)
-        out = torch.zeros_like(x)
+        out = torch.zeros_like(x[:,:,:1])
         for i, exp in enumerate(self.experts):
             m = routes[..., i] > 0
             if m.any():
-                out[m] = exp(x[m])
+                expert_output = exp(x[m])
+                if expert_output.shape[-1] != out.shape[-1]:
+                    expert_output = expert_output.mean(-1, keepdim=True)
+                out[m] = expert_output
         return out
     
 # Makes token representations more semantic while maintaining discreteness for interpretability
@@ -151,7 +154,9 @@ class PositionalNgramMemoryNetwork(nn.Module):
     def forward(self, x):
         ngrams = self.extract_ngrams(x)
         mem = self.memory.unsqueeze(0).unsqueeze(0)
-        sims = (ngrams.unsqueeze(2) * mem).sum(-1)
+        ngrams_expanded = ngrams.unsqueeze(2)
+        mem_expanded = mem.expand(ngrams_expanded.size(0), ngrams_expanded.size(1), mem.size(2), mem.size(3), mem.size(4))
+        sims = (ngrams_expanded * mem_expanded).sum(-1)
         scores = sims + self.pos_bias.view(1,1,*self.pos_bias.shape)
         best = scores.argmax(-1)
         B, L, M = best.shape
