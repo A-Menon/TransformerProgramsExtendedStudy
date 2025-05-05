@@ -10,7 +10,7 @@ from torch.nn import functional as F
 from torch.optim import Adam
 from torch.utils.data import DataLoader
 
-from models.improvements import PrefixSumCounts
+from models.improvements import PrefixSumCounts, SparseExpertCountingNetwork
 
 from src.utils import logging
 
@@ -955,11 +955,16 @@ class TransformerProgramModel(nn.Module):
         count_only=False,
         selector_width=False,
         use_prefix_counts=False,
+        use_sparse_expert=False,
+        n_experts=4,
         **kwargs,
     ):
         super().__init__()
+        self.d_vocab = d_vocab
         self.use_prefix_counts = use_prefix_counts
-        base_num_dim = n_vars_num + (1 if use_prefix_counts else 0)
+        self.use_sparse_expert = use_sparse_expert
+        extra = (1 if use_prefix_counts else 0) + (n_vars_num if use_sparse_expert else 0)
+        base_num_dim = n_vars_num + extra
         if use_prefix_counts:
             self.prefix_counts = PrefixSumCounts(d_vocab)
         self.cache = {}
@@ -973,7 +978,12 @@ class TransformerProgramModel(nn.Module):
             n_vars_cat = n_vars
         if n_vars_num is None:
             n_vars_num = n_vars
-
+        if use_sparse_expert:
+            self.sparse_expert = SparseExpertCountingNetwork(
+                hist_dim=d_vocab,
+                n_experts=n_experts
+            )
+            self.expert_proj = nn.Linear(1, n_vars_num)
         self.n_vars_cat, self.n_vars_num = n_vars_cat, n_vars_num
 
         self.d_model = d_model = d_var * n_vars_cat
@@ -1075,6 +1085,15 @@ class TransformerProgramModel(nn.Module):
         if self.use_prefix_counts:
             counts = self.prefix_counts(x)
             x_num = torch.cat([x_num, counts.float()], dim=-1)
+        if self.use_sparse_expert:
+            hist = F.one_hot(x, num_classes=self.d_vocab).float()
+            hist = torch.cumsum(hist, dim=1)
+            B, L, V = hist.shape
+            flat = hist.view(B*L, V)
+            out  = self.sparse_expert(flat)
+            out  = out.view(B, L, 1)
+            delta = self.expert_proj(out)
+            x_num = x_num + delta
         for block in self.blocks:
             x_cat, x_num = block(x_cat, x_num, mask=mask)
         if self.unembed_num:

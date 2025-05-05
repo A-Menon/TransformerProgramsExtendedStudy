@@ -81,6 +81,17 @@ def parse_args():
         action="store_true",
         help="If set, prepend running token‐count features via PrefixSumCounts"
     )
+    parser.add_argument(
+        "--use_sparse_expert",
+        action="store_true",
+        help="If set, inject SparseExpertCountingNetwork residuals into numeric embeddings"
+    )
+    parser.add_argument(
+        "--n_experts",
+        type=int,
+        default=4,
+        help="Number of experts in the SparseExpertCountingNetwork"
+    )
 
     # Standard model
     parser.add_argument("--standard", action="store_true")
@@ -408,6 +419,8 @@ def run_program(
         count_only=args.count_only,
         selector_width=args.selector_width,
         use_prefix_counts=args.use_prefix_counts,
+        use_sparse_expert=args.use_sparse_expert,
+        n_experts=args.n_experts,
     ).to(torch.device(args.device))
 
     opt = Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
