@@ -679,6 +679,7 @@ class NumAttention(nn.Module):
         **kwargs,
     ):
         super().__init__()
+        self.temp = temp
         d_out = d_head * n_heads
         self.model = model
         # n_heads, d_head, d_model
@@ -748,7 +749,6 @@ class NumAttention(nn.Module):
         attn_matrix = self.hook_attn(
             self.sample_fn(
                 attn_scores_masked,
-                tau=self.temp,
                 dim=-1,
             )
         )
