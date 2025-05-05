@@ -1026,9 +1026,6 @@ class TransformerProgramModel(nn.Module):
         self.n_heads_cat, self.n_heads_num = n_heads_cat, n_heads_num
         extra_cat = 0
         extra_num = 0
-        if self.use_chunks:
-            extra_cat += d_var
-            extra_num += d_vocab
         if self.use_prefix:
             extra_num += 1
         if self.use_experts:
@@ -1106,24 +1103,22 @@ class TransformerProgramModel(nn.Module):
         x_hashed = self.hash_embed(x) if self.use_sketch else x
 
         if self.use_chunks:
-            x_hashed, chunk_cat_ids, chunk_num = self.chunker(
+            x_hashed, chunk_cat_ids, _ = self.chunker(
                 x_hashed,
                 cat_embed_f=self.embed,
                 num_embed_f=self.num_embed,
             )
-            
-            chunk_cat = chunk_cat_ids
-            
+
+            chunk_cat = self.embed(chunk_cat_ids)
+
             Bk = chunk_cat.size(1)
             top = torch.ones(B, Bk, Bk + L, device=mask.device, dtype=torch.bool)
-            bottom = torch.cat([
-                torch.ones(B, L, Bk, device=mask.device, dtype=torch.bool),
-                mask
-            ], dim=2)
-            mask = torch.cat([top, bottom], dim=1)
+            bottom = torch.cat(
+                [torch.ones(B, L, Bk, device=mask.device, dtype=torch.bool), mask], 2
+            )
+            mask = torch.cat([top, bottom], 1)
         else:
             chunk_cat = None
-            chunk_num = None
 
         contrast_cat = None
         if self.use_contrast:
@@ -1153,8 +1148,9 @@ class TransformerProgramModel(nn.Module):
             x_num = torch.cat([x_num, expert_feat], dim=-1)
         if self.use_prefix:
             x_num = torch.cat([x_num, self.prefix_layer(x)], dim=-1)
-        if chunk_num is not None:
-            x_num = torch.cat([chunk_num, x_num], dim=1)
+        if chunk_cat is not None:
+            zeros_num = torch.zeros(B, Bk, x_num.size(-1), device=x_num.device)
+            x_num = torch.cat([zeros_num, x_num], 1)
 
         if self.pos_embed is not None:
             x_cat = torch.cat([x_cat, self.pos_embed(x_cat)], dim=-1)

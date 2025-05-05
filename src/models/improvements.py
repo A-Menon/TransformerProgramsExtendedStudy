@@ -57,25 +57,18 @@ class ChunkAggregator(nn.Module):
             L += pad_len
         n_blocks = L // self.block
 
-        blocks = tokens.contiguous().reshape(
+        blocks = tokens.view(
             B, n_blocks, self.block, H)
 
+        cat_ids = blocks[:, :, 0, :].contiguous().view(B, -1).long()
         vocab = num_embed_f.get_W().size(0)
-        one_hot = F.one_hot(blocks.long(), num_classes=vocab).float()
-        hist = one_hot.sum(2)
-        hist = hist.sum(3, keepdim=False)
+        one_hot = F.one_hot(blocks.long(), num_classes=vocab).float()  
+        hist = one_hot.sum(2).sum(3)
+        num_hist = hist.unsqueeze(2).repeat(1, 1, H, 1).view(B, -1, vocab)
 
-        num_hist = hist.unsqueeze(2).repeat(1, 1, H, 1)
-        num_hist = num_hist.reshape(B, -1, vocab)
+        new_tokens = torch.cat([cat_ids, tokens.view(B, -1)], 1)
 
-        cat_dummy = blocks[:, :, 0, :]
-        cat_dummy_flat = cat_dummy.reshape(B, -1)
-        cat_emb = cat_embed_f(cat_dummy_flat)
-
-        seq_flat = tokens.reshape(B, -1)
-        new_tokens = torch.cat([cat_dummy_flat, seq_flat], 1)
-
-        return new_tokens, cat_emb, num_hist
+        return new_tokens, cat_ids, num_hist
     
 # Sparse mixture of experts for counting-related tasks
 # MoE layer learns to pick one of several purpose‑built counting experts per token
