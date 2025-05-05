@@ -154,8 +154,9 @@ class PositionalNgramMemoryNetwork(nn.Module):
         sims = (ngrams.unsqueeze(2) * mem).sum(-1)
         scores = sims + self.pos_bias.view(1,1,*self.pos_bias.shape)
         best = scores.argmax(-1)
-        enhanced = torch.gather(
-            self.memory, 0,
-            best.unsqueeze(-1).unsqueeze(-1).repeat(1,1,1,1,self.d_model)
-        ).sum(2)
+        B, L, M = best.shape
+        slot_idx = torch.arange(self.memory.size(0), device=best.device)
+        slot_idx = slot_idx.view(1,1,M).expand(B, L, M)
+        selected = self.memory[slot_idx, best]
+        enhanced = selected.sum(2)
         return enhanced
