@@ -80,5 +80,5 @@ for DATASET in "${TASKS[@]}"; do
       --selector_width 0 \
       --seed "$SEED" --unique 1 \
       --save --save_code \
-      --output_dir "output-1/rasp/${DATASET}/k${VOCAB}_len${MAX}_L${L}_H${H}_M${M}/s${SEED}"
+      --output_dir "output-base/rasp/${DATASET}/k${VOCAB}_len${MAX}_L${L}_H${H}_M${M}/s${SEED}"
 done

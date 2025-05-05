@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=transf-prog-rasp
-#SBATCH --output=logs/llm_%j.out
-#SBATCH --error=logs/llm_%j.err
+#SBATCH --output=logs-base/rasp-base.out
+#SBATCH --error=logs-base/rasp-base.err
 #SBATCH --time=04:00:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
