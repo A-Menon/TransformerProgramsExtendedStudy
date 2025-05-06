@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 
 from models.improvements import PrefixSumCounts, SparseExpertCountingNetwork
 
-from src.utils import logging
+from utils import logging
 
 logger = logging.get_logger(__name__)
 
@@ -963,7 +963,7 @@ class TransformerProgramModel(nn.Module):
         self.d_vocab = d_vocab
         self.use_prefix_counts = use_prefix_counts
         self.use_sparse_expert = use_sparse_expert
-        extra = (1 if use_prefix_counts else 0) + (n_vars_num if use_sparse_expert else 0)
+        extra = (1 if use_prefix_counts else 0)
         base_num_dim = n_vars_num + extra
         if use_prefix_counts:
             self.prefix_counts = PrefixSumCounts(d_vocab)
@@ -1086,7 +1086,7 @@ class TransformerProgramModel(nn.Module):
             counts = self.prefix_counts(x)
             x_num = torch.cat([x_num, counts.float()], dim=-1)
         if self.use_sparse_expert:
-            hist = F.one_hot(x, num_classes=self.d_vocab).float()
+            hist = F.one_hot(x.long(), num_classes=self.d_vocab).float()
             hist = torch.cumsum(hist, dim=1)
             B, L, V = hist.shape
             flat = hist.view(B*L, V)

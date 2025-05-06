@@ -18,15 +18,15 @@ from torch.optim import Adam
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from src.models.transformers import Transformer
-from src.models.programs import (
+from models.transformers import Transformer
+from models.programs import (
     TransformerProgramModel,
     argmax,
     gumbel_hard,
     gumbel_soft,
     softmax,
 )
-from src.utils import code_utils, data_utils, logging, metric_utils
+from utils import code_utils, data_utils, logging, metric_utils
 
 logger = logging.get_logger(__name__)
 
@@ -198,7 +198,7 @@ def run_training(
                 mask = torch.tril(mask)
             lst = []
             losses_lst = []
-            tgts = y.to(model.device)
+            tgts = y.long().to(model.device)
             for _ in range(n_samples):
                 logits = model(x, mask=mask)
                 if loss_agg == "per_seq":
@@ -320,7 +320,7 @@ def run_test(
             mask = torch.tril(mask)
         with torch.no_grad():
             log_probs = model(x, mask=mask).log_softmax(-1)
-        tgts = y.to(model.device)
+        tgts = y.long().to(model.device)
         if loss_agg == "per_seq":
             losses = -log_probs.gather(2, tgts.unsqueeze(-1))
             losses = losses.masked_fill(

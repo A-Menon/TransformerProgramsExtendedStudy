@@ -11,11 +11,10 @@ class PrefixSumCounts(nn.Module):
         self.d_vocab = d_vocab
 
     def forward(self, x):
-        # x: (B, L) token IDs
-        one_hot = F.one_hot(x, num_classes=self.d_vocab).float()  # use self.d_vocab
+        one_hot = F.one_hot(x, num_classes=self.d_vocab).float()
         cumsum = torch.cumsum(one_hot, dim=1)
-        idx = x.unsqueeze(-1)  # (B, L, 1)
-        counts = torch.gather(cumsum, dim=2, index=idx).float()  # (B, L, 1)
+        idx = x.unsqueeze(-1)
+        counts = torch.gather(cumsum, dim=2, index=idx).float()
         return counts
 
 # 2. SparseExpertCountingNetwork
@@ -28,7 +27,8 @@ class HistogramExpert(nn.Module):
 class FrequencyExpert(nn.Module):
     def forward(self, x):
         total = x.sum(-1, keepdim=True) + 1e-6
-        return x / total
+        maxcount,_ = x.max(-1, keepdim=True)
+        return maxcount / total
 
 class UniquenessExpert(nn.Module):
     def forward(self, x):
@@ -36,10 +36,8 @@ class UniquenessExpert(nn.Module):
 
 class PatternCountExpert(nn.Module):
     def forward(self, x):
-        # x: (N, hist_dim)
         diff = (x[:, 1:] != x[:, :-1]).float()
-        pad = torch.zeros(x.size(0), 1, device=x.device)
-        return torch.cat([pad, diff], dim=1).cumsum(1)
+        return diff.sum(-1, keepdim=True)
 
 class SparseExpertCountingNetwork(nn.Module):
     def __init__(self, hist_dim, n_experts=4):
@@ -53,14 +51,15 @@ class SparseExpertCountingNetwork(nn.Module):
         self.router = nn.Linear(hist_dim, n_experts)
 
     def forward(self, histograms):
-        # histograms: (B*n_blocks, hist_dim)
+        N, _ = histograms.shape
         logits = self.router(histograms)
         routes = F.gumbel_softmax(logits, hard=True, dim=-1)
-        out = torch.zeros_like(histograms[..., :1])
+        out = torch.zeros(N, 1,
+                          device=histograms.device,
+                          dtype=histograms.dtype)
         for i, exp in enumerate(self.experts):
-            mask = routes[..., i] > 0
+            mask = routes[:, i].bool()
             if mask.any():
-                expert_in = histograms[mask]
-                expert_out = exp(expert_in)
+                expert_out = exp(histograms[mask])
                 out[mask] = expert_out
         return out.squeeze(-1)
