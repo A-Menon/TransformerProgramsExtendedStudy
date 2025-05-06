@@ -38,17 +38,22 @@ class PatternCountExpert(nn.Module):
     def forward(self, x):
         diff = (x[:, 1:] != x[:, :-1]).float()
         return diff.sum(-1, keepdim=True)
+    
+class IdentityExpert(nn.Module):
+    def forward(self, x):
+        return torch.zeros(x.shape[0], 1, device=x.device)
 
 class SparseExpertCountingNetwork(nn.Module):
-    def __init__(self, hist_dim, n_experts=4):
+    def __init__(self, hist_dim):
         super().__init__()
         self.experts = nn.ModuleList([
             HistogramExpert(),
             FrequencyExpert(),
             UniquenessExpert(),
-            PatternCountExpert()
+            PatternCountExpert(),
+            IdentityExpert(),
         ])
-        self.router = nn.Linear(hist_dim, n_experts)
+        self.router = nn.Linear(hist_dim, len(self.experts))
 
     def forward(self, histograms):
         logits = self.router(histograms)

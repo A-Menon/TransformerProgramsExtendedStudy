@@ -956,7 +956,6 @@ class TransformerProgramModel(nn.Module):
         selector_width=False,
         use_prefix_counts=False,
         use_sparse_expert=False,
-        n_experts=4,
         **kwargs,
     ):
         super().__init__()
@@ -979,10 +978,7 @@ class TransformerProgramModel(nn.Module):
         if n_vars_num is None:
             n_vars_num = n_vars
         if use_sparse_expert:
-            self.sparse_expert = SparseExpertCountingNetwork(
-                hist_dim=d_vocab,
-                n_experts=n_experts
-            )
+            self.sparse_expert = SparseExpertCountingNetwork(hist_dim=d_vocab)
             self.expert_proj = nn.Linear(1, n_vars_num)
         self.n_vars_cat, self.n_vars_num = n_vars_cat, n_vars_num
 

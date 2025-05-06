@@ -420,7 +420,6 @@ def run_program(
         selector_width=args.selector_width,
         use_prefix_counts=args.use_prefix_counts,
         use_sparse_expert=args.use_sparse_expert,
-        n_experts=args.n_experts,
     ).to(torch.device(args.device))
 
     opt = Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)
