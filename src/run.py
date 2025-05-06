@@ -186,14 +186,14 @@ def run_training(
         for ttemp, (x, y) in zip(ttemps, train_dataloader):
             if ttemp is not None:
                 model.set_temp(ttemp)
-            x = x.to(model.device)
+            x = x.long().to(model.device)
             m = (x != x_pad_idx).float()
             mask = (m.unsqueeze(-1) @ m.unsqueeze(-2)).bool()
             if autoregressive:
                 mask = torch.tril(mask)
             lst = []
             losses_lst = []
-            tgts = y.to(model.device)
+            tgts = y.long().to(model.device)
             for _ in range(n_samples):
                 logits = model(x, mask=mask)
                 if loss_agg == "per_seq":
@@ -308,14 +308,14 @@ def run_test(
     true = []
     model.eval()
     for x, y in dataloader:
-        x = x.to(model.device)
+        x = x.long().to(model.device)
         m = (x != x_pad_idx).float()
         mask = (m.unsqueeze(-1) @ m.unsqueeze(-2)).bool()
         if autoregressive:
             mask = torch.tril(mask)
         with torch.no_grad():
             log_probs = model(x, mask=mask).log_softmax(-1)
-        tgts = y.to(model.device)
+        tgts = y.long().to(model.device)
         if loss_agg == "per_seq":
             losses = -log_probs.gather(2, tgts.unsqueeze(-1))
             losses = losses.masked_fill(
