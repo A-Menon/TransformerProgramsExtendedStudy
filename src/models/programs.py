@@ -961,7 +961,11 @@ class TransformerProgramModel(nn.Module):
         super().__init__()
         self.use_prefix_counts = use_prefix_counts
         self.use_experts = use_experts
-        base_num_dim = n_vars_num + (1 if use_prefix_counts else 0)
+        base_num_dim = (
+            n_vars_num
+            + (1 if use_prefix_counts else 0)
+            + (1 if use_experts else 0)
+        )
         if use_prefix_counts:
             self.prefix_counts = PrefixSumCounts(d_vocab)
         if use_experts:

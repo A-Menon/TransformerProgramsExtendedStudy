@@ -30,7 +30,6 @@ declare -A MODULE_FLAGS=(
 )
 
 for DATASET in "${TASKS[@]}"; do
-  # ───── model sizes from Table 1 ─────
   case "$DATASET" in
     hist)         VOCAB=8  MAX=8  L=1 H=4 M=2 ;;
     double_hist)  VOCAB=8  MAX=8  L=3 H=4 M=2 ;;
@@ -41,7 +40,6 @@ for DATASET in "${TASKS[@]}"; do
     dyck2)        VOCAB=16 MAX=16 L=3 H=4 M=4 ;;
   esac
 
-  # ───── derive default splits ─────
   N_HEADS_CAT=$((H/2)); N_HEADS_NUM=$((H/2))
   N_CAT_MLPS=$((M/2));  N_NUM_MLPS=$((M/2))
   ATT_TYPE="both"
@@ -53,9 +51,9 @@ for DATASET in "${TASKS[@]}"; do
       N_HEADS_CAT=0; N_HEADS_NUM=$H
       ;;
     double_hist)
-      ATT_TYPE="both"           
-      N_HEADS_CAT=2;  N_HEADS_NUM=2 
-      N_CAT_MLPS=1;   N_NUM_MLPS=1  
+      ATT_TYPE="both"
+      N_HEADS_CAT=2;  N_HEADS_NUM=2
+      N_CAT_MLPS=1;   N_NUM_MLPS=1
       MLP_TYPE="--mlp_type mix"
       ;;
   esac
@@ -71,6 +69,12 @@ for DATASET in "${TASKS[@]}"; do
     echo "--- Variant: $VARIANT (vocab=${VOCAB_VAR}, maxlen=${MAX_VAR}) ---"
 
     for MODULE in none prefix expert both; do
+      # ---- skip double_hist × baseline × (none or prefix) ----
+      if [[ "$DATASET" == "double_hist" && "$VARIANT" == "baseline" && ( "$MODULE" == "none" || "$MODULE" == "prefix" ) ]]; then
+        echo "---- Skipping $DATASET baseline with module $MODULE ----"
+        continue
+      fi
+
       FLAGS="${MODULE_FLAGS[$MODULE]}"
       if [[ "$DATASET" =~ ^(hist|double_hist)$ ]]; then
         FLAGS="$FLAGS --count_only"
