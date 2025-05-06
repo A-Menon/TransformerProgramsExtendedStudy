@@ -81,16 +81,11 @@ def parse_args():
         action="store_true",
         help="If set, prepend running token‐count features via PrefixSumCounts"
     )
+
     parser.add_argument(
-        "--use_sparse_expert",
+        "--use_experts",
         action="store_true",
-        help="If set, inject SparseExpertCountingNetwork residuals into numeric embeddings"
-    )
-    parser.add_argument(
-        "--n_experts",
-        type=int,
-        default=4,
-        help="Number of experts in the SparseExpertCountingNetwork"
+        help="If set, append a learned scalar ‘expert’ feature to every token."
     )
 
     # Standard model
@@ -198,7 +193,7 @@ def run_training(
                 mask = torch.tril(mask)
             lst = []
             losses_lst = []
-            tgts = y.long().to(model.device)
+            tgts = y.to(model.device)
             for _ in range(n_samples):
                 logits = model(x, mask=mask)
                 if loss_agg == "per_seq":
@@ -320,7 +315,7 @@ def run_test(
             mask = torch.tril(mask)
         with torch.no_grad():
             log_probs = model(x, mask=mask).log_softmax(-1)
-        tgts = y.long().to(model.device)
+        tgts = y.to(model.device)
         if loss_agg == "per_seq":
             losses = -log_probs.gather(2, tgts.unsqueeze(-1))
             losses = losses.masked_fill(
@@ -419,7 +414,7 @@ def run_program(
         count_only=args.count_only,
         selector_width=args.selector_width,
         use_prefix_counts=args.use_prefix_counts,
-        use_sparse_expert=args.use_sparse_expert,
+        use_experts=args.use_experts,
     ).to(torch.device(args.device))
 
     opt = Adam([p for p in model.parameters() if p.requires_grad], lr=args.lr)

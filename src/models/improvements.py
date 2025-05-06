@@ -55,6 +55,10 @@ class SparseExpertCountingNetwork(nn.Module):
             IdentityExpert(),
         ])
         self.router = nn.Linear(hist_dim, len(self.experts))
+        with torch.no_grad():
+            nn.init.constant_(self.router.bias, 0.0)
+            identity_idx = len(self.experts) - 1
+            self.router.bias[identity_idx] = 1.0
 
     def forward(self, histograms):
         logits = self.router(histograms)
@@ -66,5 +70,4 @@ class SparseExpertCountingNetwork(nn.Module):
         else:
             routes = probs
         expert_outs = torch.stack([exp(histograms) for exp in self.experts], dim=1)
-        out = (routes.unsqueeze(-1) * expert_outs).sum(dim=1)
-        return out.squeeze(-1)
+        return F.relu(out).squeeze(-1)

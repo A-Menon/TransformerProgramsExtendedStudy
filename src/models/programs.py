@@ -955,17 +955,17 @@ class TransformerProgramModel(nn.Module):
         count_only=False,
         selector_width=False,
         use_prefix_counts=False,
-        use_sparse_expert=False,
+        use_experts=False,
         **kwargs,
     ):
         super().__init__()
-        self.d_vocab = d_vocab
         self.use_prefix_counts = use_prefix_counts
-        self.use_sparse_expert = use_sparse_expert
-        extra = (1 if use_prefix_counts else 0)
-        base_num_dim = n_vars_num + extra
+        self.use_experts = use_experts
+        base_num_dim = n_vars_num + (1 if use_prefix_counts else 0)
         if use_prefix_counts:
             self.prefix_counts = PrefixSumCounts(d_vocab)
+        if use_experts:
+            self.experts = SparseExpertCountingNetwork(d_vocab)
         self.cache = {}
         self.use_cache = use_cache
         self.d_pos = d_pos or d_var
@@ -977,9 +977,7 @@ class TransformerProgramModel(nn.Module):
             n_vars_cat = n_vars
         if n_vars_num is None:
             n_vars_num = n_vars
-        if use_sparse_expert:
-            self.sparse_expert = SparseExpertCountingNetwork(hist_dim=d_vocab)
-            self.expert_proj = nn.Linear(1, n_vars_num)
+
         self.n_vars_cat, self.n_vars_num = n_vars_cat, n_vars_num
 
         self.d_model = d_model = d_var * n_vars_cat
@@ -1081,15 +1079,13 @@ class TransformerProgramModel(nn.Module):
         if self.use_prefix_counts:
             counts = self.prefix_counts(x)
             x_num = torch.cat([x_num, counts.float()], dim=-1)
-        if self.use_sparse_expert:
-            hist = F.one_hot(x.long(), num_classes=self.d_vocab).float()
-            hist = torch.cumsum(hist, dim=1)
-            B, L, V = hist.shape
-            flat = hist.view(B*L, V)
-            out  = self.sparse_expert(flat)
-            out  = out.view(B, L, 1)
-            delta = self.expert_proj(out)
-            x_num = x_num + delta
+        if self.use_experts:
+            one_hot = F.one_hot(x, num_classes=self.experts.router.in_features).float()
+            hist = one_hot.sum(dim=1)
+            e_feat = self.experts(hist)
+            seq_len = x.shape[1]
+            e_feat = e_feat.unsqueeze(-1).unsqueeze(-1).expand(-1, seq_len, 1)
+            x_num = torch.cat([x_num, e_feat], dim=-1)
         for block in self.blocks:
             x_cat, x_num = block(x_cat, x_num, mask=mask)
         if self.unembed_num:
