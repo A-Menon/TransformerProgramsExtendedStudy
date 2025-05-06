@@ -70,4 +70,4 @@ class SparseExpertCountingNetwork(nn.Module):
         else:
             routes = probs
         expert_outs = torch.stack([exp(histograms) for exp in self.experts], dim=1)
-        return F.relu(out).squeeze(-1)
+        return F.relu(expert_outs).squeeze(-1)
