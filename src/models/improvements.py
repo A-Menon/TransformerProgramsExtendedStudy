@@ -52,7 +52,7 @@ class SparseExpertCountingNetwork(nn.Module):
 
     def forward(self, histograms):
         logits = self.router(histograms)
-        routes = F.gumbel_softmax(logits, hard=False, dim=-1)
+        routes = F.gumbel_softmax(logits, tau=1.0, hard=not self.training, dim=-1)
         expert_outs = torch.stack(
             [exp(histograms) for exp in self.experts],
             dim=1
