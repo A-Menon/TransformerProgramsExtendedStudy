@@ -54,8 +54,7 @@ for DATASET in "${TASKS[@]}"; do
       N_HEADS_CAT=0; N_HEADS_NUM=$H
       ;;
     double_hist)
-      ATT_TYPE="both"
-      COUNT_ONLY=""                 
+      ATT_TYPE="both"           
       N_HEADS_CAT=2;  N_HEADS_NUM=2 
       N_CAT_MLPS=1;   N_NUM_MLPS=1  
       MLP_TYPE="--mlp_type mix"
