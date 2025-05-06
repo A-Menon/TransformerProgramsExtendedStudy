@@ -25,8 +25,8 @@ declare -A M_SCALE=( [baseline]=1 [longlen]=2 [bigvocab]=2 )
 declare -A MODULE_FLAGS=(
   [none]=""
   [prefix]="--use_prefix_counts"
-  [expert]="--use_sparse_expert"
-  [both]="--use_prefix_counts --use_sparse_expert"
+  [expert]="--use_experts"
+  [both]="--use_prefix_counts --use_experts"
 )
 
 for DATASET in "${TASKS[@]}"; do
@@ -45,7 +45,6 @@ for DATASET in "${TASKS[@]}"; do
   N_HEADS_CAT=$((H/2)); N_HEADS_NUM=$((H/2))
   N_CAT_MLPS=$((M/2));  N_NUM_MLPS=$((M/2))
   ATT_TYPE="both"
-  COUNT_ONLY="--count_only"
   MLP_TYPE="--mlp_type cat"
 
   case "$DATASET" in
@@ -73,6 +72,9 @@ for DATASET in "${TASKS[@]}"; do
 
     for MODULE in none prefix expert both; do
       FLAGS="${MODULE_FLAGS[$MODULE]}"
+      if [[ "$DATASET" =~ ^(hist|double_hist)$ ]]; then
+        FLAGS="$FLAGS --count_only"
+      fi
       OUTDIR="output/rasp/${DATASET}/${VARIANT}/modules_${MODULE}/k${VOCAB_VAR}_len${MAX_VAR}_L${L}_H${H}_M${M}/s${SEED}"
 
       echo "---- Modules: $MODULE → $OUTDIR ----"
@@ -92,7 +94,7 @@ for DATASET in "${TASKS[@]}"; do
         --attention_type "$ATT_TYPE" \
         --rel_pos_bias fixed --one_hot_embed --dropout 0.0 \
         --mlp_vars_in 2 --d_mlp 64 \
-        $COUNT_ONLY $MLP_TYPE \
+        $MLP_TYPE \
         --selector_width 0 \
         --seed "$SEED" --unique 1 \
         --save --save_code \
