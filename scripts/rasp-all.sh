@@ -15,7 +15,7 @@ TAU_INIT=3.0
 TAU_END=0.1       # cools far enough for discrete convergence
 TAU_SCHED=geomspace
 
-TASKS=(double_hist hist reverse sort most_freq dyck1 dyck2)
+TASKS=(double_hist hist reverse sort most_freq)
 
 # hyperparam variants: name → vocab‐scale, max‐scale
 declare -A V_SCALE=( [baseline]=1 [longlen]=1 [bigvocab]=2 )
@@ -36,8 +36,6 @@ for DATASET in "${TASKS[@]}"; do
     reverse)      VOCAB=8  MAX=8  L=3 H=8 M=2 ;;
     sort)         VOCAB=8  MAX=8  L=3 H=8 M=4 ;;
     most_freq)    VOCAB=8  MAX=8  L=4 H=8 M=4 ;;
-    dyck1)        VOCAB=16 MAX=16 L=3 H=8 M=2 ;;
-    dyck2)        VOCAB=16 MAX=16 L=3 H=4 M=4 ;;
   esac
 
   N_HEADS_CAT=$((H/2)); N_HEADS_NUM=$((H/2))
