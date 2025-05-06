@@ -11,10 +11,11 @@ class PrefixSumCounts(nn.Module):
         self.d_vocab = d_vocab
 
     def forward(self, x):
-        one_hot = F.one_hot(x.long(), num_classes=self.d_vocab).float()
+        x_long = x.long()
+        one_hot = F.one_hot(x_long, num_classes=self.d_vocab).float()
         cumsum = torch.cumsum(one_hot, dim=1)
-        idx = x.unsqueeze(-1)
-        counts = torch.gather(cumsum, dim=2, index=idx).float()
+        idx = x_long.unsqueeze(-1)
+        counts = torch.gather(cumsum, 2, idx).float()
         return counts
 
 # 2. SparseExpertCountingNetwork
