@@ -68,7 +68,7 @@ for DATASET in "${TASKS[@]}"; do
 
     for MODULE in none prefix expert both; do
       # ---- skip some ----
-      if [[ "$DATASET" != "most_freq"]]; then
+      if [[ "$DATASET" != "most_freq" ] || "$VARIANT" == "baseline" || ( "$VARIANT" == "longlen" && "$MODULE" == "none" )]; then
         echo "---- Skipping $DATASET baseline with module $MODULE ----"
         continue
       fi
