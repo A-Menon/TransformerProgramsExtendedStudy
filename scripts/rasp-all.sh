@@ -67,8 +67,8 @@ for DATASET in "${TASKS[@]}"; do
     echo "--- Variant: $VARIANT (vocab=${VOCAB_VAR}, maxlen=${MAX_VAR}) ---"
 
     for MODULE in none prefix expert both; do
-      # ---- skip double_hist × baseline × (none or prefix) ----
-      if [[ "$DATASET" == "double_hist" && "$VARIANT" == "baseline" && ( "$MODULE" == "none" || "$MODULE" == "prefix" ) ]]; then
+      # ---- skip some ----
+      if [[ "$DATASET" != "most_freq"]]; then
         echo "---- Skipping $DATASET baseline with module $MODULE ----"
         continue
       fi
